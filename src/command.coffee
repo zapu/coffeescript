@@ -12,6 +12,9 @@ optparse       = require './optparse'
 CoffeeScript   = require './coffee-script'
 {spawn, exec}  = require 'child_process'
 {EventEmitter} = require 'events'
+iced           = require './iced'
+
+runtime_modes_str = "{" + (iced.const.runtime_modes.join ", ") + "}"
 
 exists         = fs.exists or path.exists
 useWinPathSep  = path.sep is '\\'
@@ -26,12 +29,12 @@ hidden = (file) -> /^\.|~$/.test file
 
 # The help banner that is printed when `coffee` is called without arguments.
 BANNER = '''
-  Usage: coffee [options] path/to/script.coffee -- [args]
+  Usage: iced [options] path/to/script.iced -- [args]
 
-  If called without options, `coffee` will run your script.
+  If called without options, `iced` will run your script.
 '''
 
-# The list of all the valid option flags that `coffee` knows how to handle.
+# The list of all the valid option flags that `iced` knows how to handle.
 SWITCHES = [
   ['-b', '--bare',            'compile without a top-level function wrapper']
   ['-c', '--compile',         'compile to JavaScript and save as .js files']
@@ -49,6 +52,8 @@ SWITCHES = [
   ['-t', '--tokens',          'print out the tokens that the lexer/rewriter produce']
   ['-v', '--version',         'display the version number']
   ['-w', '--watch',           'watch scripts for changes and rerun commands']
+  ['-I', '--runtime [WHICH]', "how to include the iced runtime, one of #{runtime_modes_str}; default is 'node'" ]
+  ['-F', '--runforce',        'output an Iced runtime even if not needed' ]
 ]
 
 # Top-level objects shared by all the functions.
@@ -59,7 +64,7 @@ notSources   = {}
 watchers     = {}
 optionParser = null
 
-# Run `coffee` by parsing passed options and determining what action to take.
+# Run `iced` by parsing passed options and determining what action to take.
 # Many flags cause us to divert before compiling anything. Flags passed after
 # `--` will be passed verbatim to your script as arguments in `process.argv`
 exports.run = ->
@@ -314,11 +319,18 @@ printTokens = (tokens) ->
     "[#{tag} #{value}]"
   printLine strings.join(' ')
 
+handleIcedOptions = (o) ->
+  # Some opts we can read out of the evironment
+  o.runtime = v if not o.runtime and (v = process.env.ICED_RUNTIME)?
+  if (val = o.runtime)? and val not in iced.const.runtime_modes
+    throw new Error "Option -I/--runtime has to be one of #{runtime_modes_str}, got '#{val}'"
+
 # Use the [OptionParser module](optparse.html) to extract all options from
 # `process.argv` that are specified in `SWITCHES`.
 parseOptions = ->
   optionParser  = new optparse.OptionParser SWITCHES, BANNER
   o = opts      = optionParser.parse process.argv[2..]
+  handleIcedOptions o
   o.compile     or=  !!o.output
   o.run         = not (o.compile or o.print or o.lint or o.map)
   o.print       = !!  (o.print or (o.eval or o.stdio and o.compile))
