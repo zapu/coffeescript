@@ -479,3 +479,8 @@ SINGLE_CLOSERS   = ['TERMINATOR', 'CATCH', 'FINALLY', 'ELSE', 'OUTDENT', 'LEADIN
 
 # Tokens that end a line.
 LINEBREAKS       = ['TERMINATOR', 'INDENT', 'OUTDENT']
+
+# iced additions
+IMPLICIT_FUNC.push 'DEFER'
+IMPLICIT_CALL.push 'DEFER'
+IMPLICIT_END.push 'AWAIT'

@@ -110,7 +110,8 @@ exports.Lexer = class Lexer
       return id.length
     forcedIdentifier = colon or
       (prev = last @tokens) and (prev[0] in ['.', '?.', '::', '?::'] or
-      not prev.spaced and prev[0] is '@')
+      not prev.spaced and prev[0] is '@') and id isnt 'defer'
+
     tag = 'IDENTIFIER'
 
     if not forcedIdentifier and (id in JS_KEYWORDS or id in COFFEE_KEYWORDS)
@@ -709,7 +710,10 @@ JS_KEYWORDS = [
 ]
 
 # CoffeeScript-only keywords.
-COFFEE_KEYWORDS = ['undefined', 'then', 'unless', 'until', 'loop', 'of', 'by', 'when']
+COFFEE_KEYWORDS = ['undefined', 'then', 'unless', 'until', 'loop', 'of', 'by', 'when'] 
+
+# iced additions
+COFFEE_KEYWORDS = COFFEE_KEYWORDS.concat [ 'await', 'defer' ]
 
 COFFEE_ALIAS_MAP =
   and  : '&&'
