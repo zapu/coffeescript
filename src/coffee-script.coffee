@@ -11,9 +11,10 @@ child_process = require 'child_process'
 {parser}      = require './parser'
 helpers       = require './helpers'
 SourceMap     = require './sourcemap'
+iced          = require './iced'
 
 # The current CoffeeScript version number.
-exports.VERSION = '1.6.2'
+exports.VERSION = '1.6.2a'
 
 # Expose helpers for testing.
 exports.helpers = helpers
@@ -33,7 +34,7 @@ exports.compile = compile = (code, options = {}) ->
   if options.sourceMap
     map = new SourceMap
 
-  fragments = (parser.parse lexer.tokenize(code, options)).compileToFragments options
+  fragments = (iced.transform parser.parse lexer.tokenize(code, options)).compileToFragments options
 
   currentLine = 0
   currentLine += 1 if options.header
@@ -76,9 +77,9 @@ exports.tokens = (code, options) ->
 # or traverse it by using `.traverseChildren()` with a callback.
 exports.nodes = (source, options) ->
   if typeof source is 'string'
-    parser.parse lexer.tokenize source, options
+    iced.transform parser.parse lexer.tokenize source, options
   else
-    parser.parse source
+    iced.transform parser.parse source
 
 # Compile and execute a string of CoffeeScript (on the server), correctly
 # setting `__filename`, `__dirname`, and relative `require()`.
@@ -151,7 +152,7 @@ loadFile = (module, filename) ->
 # If the installed version of Node supports `require.extensions`, register
 # CoffeeScript as an extension.
 if require.extensions
-  for ext in ['.coffee', '.litcoffee', '.coffee.md']
+  for ext in ['.coffee', '.litcoffee', '.coffee.md', '.iced']
     require.extensions[ext] = loadFile
 
 # If we're on Node, patch `child_process.fork` so that Coffee scripts are able
@@ -189,6 +190,9 @@ parser.lexer =
 
 # Make all the AST nodes visible to the parser.
 parser.yy = require './nodes'
+
+# Export the iced runtime as 'iced'
+exports.iced = iced.runtime
 
 # Override Jison's default error handling function.
 parser.yy.parseError = (message, {token}) ->
