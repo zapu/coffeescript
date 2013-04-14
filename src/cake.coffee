@@ -37,7 +37,7 @@ helpers.extend global,
     switches.push [letter, flag, description]
 
   # Invoke another task in the current Cakefile.
-  invoke: (name) ->
+  invoke: (name, cb) ->
     missingTask name unless tasks[name]
     tasks[name].action options
 
@@ -45,7 +45,7 @@ helpers.extend global,
 # asynchrony may cause tasks to execute in a different order than you'd expect.
 # If no tasks are passed, print the help screen. Keep a reference to the
 # original directory name, when running Cake tasks from subdirectories.
-exports.run = ->
+exports.run = (cb) ->
   global.__originalDirname = fs.realpathSync '.'
   process.chdir cakefileDirectory __originalDirname
   args = process.argv[2..]
