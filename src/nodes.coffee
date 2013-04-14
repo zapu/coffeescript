@@ -659,6 +659,7 @@ exports.Block = class Block extends Base
 # `true`, `false`, `null`...
 exports.Literal = class Literal extends Base
   constructor: (@value) ->
+    super()
 
   makeReturn: ->
     if @isStatement() then this else super
@@ -679,6 +680,9 @@ exports.Literal = class Literal extends Base
     return this if @value is 'continue' and not o?.loop
 
   compileNode: (o) ->
+    # Don't tun this code through @makeCode below....
+    return @icedCompileIced o if @icedLoopFlag and @icedIsJump()
+
     code = if @value is 'this'
       if o.scope.method?.bound then o.scope.method.context else @value
     else if @value.reserved
@@ -690,6 +694,23 @@ exports.Literal = class Literal extends Base
 
   toString: ->
     ' "' + @value + '"'
+
+  icedWalkAst : (parent, o) ->
+    if @value is 'arguments' and o.foundAwaitFunc
+      o.foundArguments = true
+      @value = "_arguments"
+    false
+
+  icedIsJump : -> @isStatement()
+
+  icedCompileIced: (o) ->
+    d =
+      'continue' : iced.const.c_while
+      'break'    : iced.const.b_while
+    l = d[@value]
+    func = new Value new Literal l
+    call = new Call func, []
+    return call.compileNode o
 
 class exports.Undefined extends Base
   isAssignable: NO
@@ -713,7 +734,9 @@ class exports.Bool extends Base
 # A `return` is a *pureStatement* -- wrapping it in a closure wouldn't
 # make sense.
 exports.Return = class Return extends Base
-  constructor: (expr) ->
+  constructor: (expr, auto) ->
+    super()
+    @icedHasAutocbFlag = auto
     @expression = expr if expr and not expr.unwrap().isUndefined
 
   children: ['expression']
@@ -727,6 +750,8 @@ exports.Return = class Return extends Base
     if expr and expr not instanceof Return then expr.compileToFragments o, level else super o, level
 
   compileNode: (o) ->
+    return @icedCompileIced o if @icedHasAutocbFlag
+
     answer = []
     # TODO: If we call expression.compile() here twice, we'll sometimes get back different results!
     answer.push @makeCode(@tab + "return#{[" " if @expression]}")
@@ -735,6 +760,13 @@ exports.Return = class Return extends Base
     answer.push @makeCode ";"
     return answer
 
+  icedCompileIced : (o) ->
+    cb = new Value new Literal iced.const.autocb
+    args = if @expression then [ @expression ] else []
+    call = new Call cb, args
+    ret = new Literal "return"
+    block = new Block [ call, ret];
+    block.compileNode o
 
 #### Value
 
@@ -742,6 +774,7 @@ exports.Return = class Return extends Base
 # or vanilla.
 exports.Value = class Value extends Base
   constructor: (base, props, tag) ->
+    super()
     return base if not props and base instanceof Value
     @base       = base
     @properties = props or []
@@ -749,6 +782,8 @@ exports.Value = class Value extends Base
     return this
 
   children: ['base', 'properties']
+
+  copy : -> new Value @base, @properties
 
   # Add a property (or *properties* ) `Access` to the list.
   add: (props) ->
