@@ -309,6 +309,9 @@ exports.Base = class Base
         e.icedContinuationBlock = @icedContinuationBlock
       e
 
+  icedStatementAssertion : () ->
+    @error "await'ed statement can't act as expressions" if @icedIsCpsPivot()
+
   # End iced additions...
 
   # Default implementations of the common node properties and methods. Nodes
@@ -783,6 +786,7 @@ exports.Value = class Value extends Base
 
   children: ['base', 'properties']
 
+  # Minor iced addition for convenience
   copy : -> new Value @base, @properties
 
   # Add a property (or *properties* ) `Access` to the list.
@@ -875,6 +879,7 @@ exports.Value = class Value extends Base
 # at the same position.
 exports.Comment = class Comment extends Base
   constructor: (@comment) ->
+    super()
 
   isStatement:     YES
   makeReturn:      THIS
@@ -890,6 +895,7 @@ exports.Comment = class Comment extends Base
 # calls against the prototype's function of the same name.
 exports.Call = class Call extends Base
   constructor: (variable, @args = [], @soak) ->
+    super()
     @isNew    = false
     @isSuper  = variable is 'super'
     @variable = if @isSuper then null else variable
@@ -1028,6 +1034,7 @@ exports.Call = class Call extends Base
 # [Closure Library](http://closure-library.googlecode.com/svn/docs/closureGoogBase.js.html).
 exports.Extends = class Extends extends Base
   constructor: (@child, @parent) ->
+    super()
 
   children: ['child', 'parent']
 
@@ -1041,6 +1048,7 @@ exports.Extends = class Extends extends Base
 # an access into the object's prototype.
 exports.Access = class Access extends Base
   constructor: (@name, tag) ->
+    super()
     @name.asKey = yes
     @soak  = tag is 'soak'
 
@@ -1062,6 +1070,7 @@ exports.Access = class Access extends Base
 # A `[ ... ]` indexed access into an array or object.
 exports.Index = class Index extends Base
   constructor: (@index) ->
+    super()
 
   children: ['index']
 
@@ -1081,10 +1090,9 @@ exports.Range = class Range extends Base
   children: ['from', 'to']
 
   constructor: (@from, @to, tag) ->
+    super()
     @exclusive = tag is 'exclusive'
     @equals = if @exclusive then '' else '='
-
-
 
   # Compiles the range's source variables -- where it starts and where it ends.
   # But only if they need to be cached to avoid double evaluation.
@@ -1203,6 +1211,7 @@ exports.Slice = class Slice extends Base
 exports.Obj = class Obj extends Base
   constructor: (props, @generated = false) ->
     @objects = @properties = props or []
+    super()
 
   children: ['properties']
 
@@ -1248,6 +1257,7 @@ exports.Obj = class Obj extends Base
 exports.Arr = class Arr extends Base
   constructor: (objs) ->
     @objects = objs or []
+    super()
 
   children: ['objects']
 
@@ -1282,6 +1292,7 @@ exports.Arr = class Arr extends Base
 # list of prototype property assignments.
 exports.Class = class Class extends Base
   constructor: (@variable, @parent, @body = new Block) ->
+    super()
     @boundFuncs = []
     @body.classBody = yes
 
@@ -1432,6 +1443,7 @@ exports.Class = class Class extends Base
 # property of an object -- including within object literals.
 exports.Assign = class Assign extends Base
   constructor: (@variable, @value, @context, options) ->
+    super()
     @param = options and options.param
     @subpattern = options and options.subpattern
     forbidden = (name = @variable.unwrapAll().value) in STRICT_PROSCRIBED
@@ -1454,6 +1466,10 @@ exports.Assign = class Assign extends Base
   # we've been assigned to, for correct internal references. If the variable
   # has not been seen yet within the current scope, declare it.
   compileNode: (o) ->
+
+    # Start here for now, we're going to need a lot more of these.
+    @value.icedStatementAssertion()
+
     if isValue = @variable instanceof Value
       return @compilePatternMatch o if @variable.isArray() or @variable.isObject()
       return @compileSplice       o if @variable.isSplice()
@@ -1595,10 +1611,13 @@ exports.Assign = class Assign extends Base
 # has no *children* -- they're within the inner scope.
 exports.Code = class Code extends Base
   constructor: (params, body, tag) ->
+    super()
     @params  = params or []
     @body    = body or new Block
     @bound   = tag is 'boundfunc'
     @context = '_this' if @bound
+    @icedgen = tag is 'icedgen'
+    @icedPassedDeferral = null
 
   children: ['params', 'body']
 
@@ -1665,6 +1684,10 @@ exports.Code = class Code extends Base
       if i then answer.push @makeCode ", "
       answer.push p...
     answer.push @makeCode ') {'
+
+    # Augment @body with iced-specific features
+    @icedPatchBody o
+
     answer = answer.concat(@makeCode("\n"), @body.compileWithDeclarations(o), @makeCode("\n#{@tab}")) unless @body.isEmpty()
     answer.push @makeCode '}'
 
@@ -1678,6 +1701,72 @@ exports.Code = class Code extends Base
   # unless `crossScope` is `true`.
   traverseChildren: (crossScope, func) ->
     super(crossScope, func) if crossScope
+ 
+  icedPatchBody : (o) ->
+
+    if @icedNodeFlag and not @icedgen
+      # Find the tamecb if possible, and do this before we update the
+      # scope, below...
+      @icedPassedDeferral = o.scope.freeVariable iced.const.passed_deferral
+      lhs = new Value new Literal @icedPassedDeferral
+      f = new Value new Literal iced.const.ns
+      f.add new Access new Value new Literal iced.const.findDeferral
+      rhs = new Call f, [ new Value new Literal 'arguments' ]
+      @body.unshift(new Assign lhs, rhs)
+
+    # There are two important cases to consider in terms of autocb;
+    # In the case of an explicit call to return, we handle it in
+    # 'new Return' constructor.  The subtler case is when control
+    # falls off the end of a function.  But that's just the top-level
+    # continuation within the function.  So we assign it to the autocb
+    # here.  There's a slight scoping hack, to supply  { icedlocal : yes },
+    # which forces __iced_k to be locally scoped.  To have it global is
+    # a real disaster of subtle bugs. But wait, there's yet more!!
+    # Recall that icedgen functions share scope with their parent function.
+    # That means, they'll insert an '__iced_k' in the parent scope
+    # as a type == 'param' !! Meaning, it won't be output at the high-level
+    # function that contains them (since only 'var's) are output.
+    # Thus, we had to make a hack to scope.coffee to support this particular
+    # case.
+    # 
+    if @icedNodeFlag and not @icedgen
+      r = if @icedHasAutocbFlag then iced.const.autocb else iced.const.k_noop
+      rhs = new Value new Literal r
+      lhs = new Value new Literal iced.const.k
+      @body.unshift(new Assign lhs, rhs, null, { icedlocal : yes } )
+
+  # we are icing as a feature of all of our children.  However, if we
+  # are iced, it's not the case that our parent is iced!
+  icedWalkAst : (parent, o) ->
+    @icedParentAwait = parent
+    fa_prev = o.foundAutocb
+    cf_prev = o.currFunc
+    fg_prev = o.foundArguments
+    faf_prev = o.foundAwaitFunc
+    o.foundAutocb = false
+    o.foundArguments = false
+    o.foundAwaitFunc = false
+    o.currFunc = @
+    for param in @params
+      if param.name instanceof Literal and param.name.value is iced.const.autocb
+        o.foundAutocb = true
+        break
+    @icedHasAutocbFlag = o.foundAutocb
+    super parent, o
+    @icedFoundArguments = o.foundArguments
+    o.foundAwaitFunc = faf_prev
+    o.foundArguments = fg_prev
+    o.foundAutocb = fa_prev
+    o.currFunc = cf_prev
+    false
+
+  icedWalkAstLoops : (flood) ->
+    @icedLoopFlag = true if super false
+    false
+
+  icedWalkCpsPivots: ->
+    super()
+    @icedCpsPivotFlag = false
 
 #### Param
 
@@ -1686,6 +1775,7 @@ exports.Code = class Code extends Base
 # as well as be a splat, gathering up a group of parameters into an array.
 exports.Param = class Param extends Base
   constructor: (@name, @value, @splat) ->
+    super()
     if (name = @name.unwrapAll().value) in STRICT_PROSCRIBED
       @name.error "parameter name \"#{name}\" is not allowed"
 
@@ -1756,6 +1846,7 @@ exports.Splat = class Splat extends Base
   isAssignable: YES
 
   constructor: (name) ->
+    super()
     @name = if name.compile then name else new Literal name
 
   assigns: (name) ->
@@ -1828,6 +1919,7 @@ exports.While = class While extends Base
   # *while* can be used as a part of a larger expression -- while loops may
   # return an array containing the computed result of each iteration.
   compileNode: (o) ->
+    return @icedCompileIced o if @icedNodeFlag
     o.indent += TAB
     set      = ''
     {body}   = this
@@ -1849,12 +1941,102 @@ exports.While = class While extends Base
       answer.push @makeCode "\n#{@tab}return #{rvar};"
     answer
 
+  icedWrap : (d) ->
+    condition = d.condition
+    body = d.body
+    rvar = d.rvar
+    outStatements = []
+
+    if rvar
+      rvar_value = new Value new Literal rvar
+
+    # Set up all of the IDs
+    top_id = new Value new Literal iced.const.t_while
+    k_id = new Value new Literal iced.const.k
+    k_param = new Param new Literal iced.const.k
+
+    # Break will just call the parent continuation, but in some
+    # cases, there will be a return value, so then we have to pass
+    # that back out.  Hence the split below:
+    break_id = new Value new Literal iced.const.b_while
+    if rvar
+      break_expr = new Call k_id, [ rvar_value ]
+      break_block = new Block [ break_expr ]
+      break_body = new Code [], break_block, 'icedgen'
+      break_assign = new Assign break_id, break_body, null, { icedlocal : yes }
+    else
+      break_assign = new Assign break_id, k_id, null, { icedlocal : yes }
+
+    # The continue assignment is the increment at the end
+    # of the loop (if it's there), and also the recursive
+    # call back to the top.
+    continue_id = new Value new Literal iced.const.c_while
+    continue_block_inner = new Block [ new Call top_id, [ k_id ] ]
+    continue_block_inner.unshift d.step if d.step
+    continue_fn = new Code [], continue_block_inner
+    tramp = new Value new Literal iced.const.ns
+    tramp.add(new Access new Value new Literal iced.const.trampoline)
+    continue_block = new Block [ new Call tramp, [ continue_fn ] ]
+    continue_body = new Code [], continue_block, 'icedgen'
+    continue_assign = new Assign continue_id, continue_body, null, { icedlocal : yes }
+
+    # Next is like continue, but it also squirrels away the return
+    # value, if required!
+    next_id = new Value new Literal iced.const.n_while
+    if rvar
+      next_arg = new Param new Literal iced.const.n_arg
+      f = rvar_value.copy()
+      f.add new Access new Value new Literal 'push'
+      call1 = new Call f, [ next_arg ]
+      call2 = new Call continue_id, []
+      next_block = new Block [ call1, call2 ]
+      next_body = new Code [ next_arg ], next_block, 'icedgen'
+      next_assign = new Assign next_id, next_body, null, { icedlocal : yes }
+    else
+      next_assign = new Assign next_id, continue_id
+
+    # The whole body is wrapped in an if, with the positive
+    # condition being the loop, and the negative condition
+    # being the break out of the loop
+    cond = new If condition.invert(), new Block [ new Call break_id, [] ]
+    if d.guard
+      continue_block = new Block [ new Call continue_id, [] ]
+      guard_if = new If d.guard, body
+      guard_if.addElse continue_block
+      cond.addElse new Block [ d.pre_body, guard_if ]
+    else
+      cond.addElse new Block [ d.pre_body, body ]
+
+    # The top of the loop construct.
+    top_body = new Block [ break_assign, continue_assign, next_assign, cond ]
+    top_func = new Code [ k_param ], top_body, 'icedgen'
+    top_assign = new Assign top_id, top_func, null, { icedlocal : yes }
+    top_call = new Call top_id, [ k_id ]
+    top_statements = []
+    top_statements = top_statements.concat d.init if d.init
+    if rvar
+      rvar_init = new Assign rvar_value, new Arr
+      top_statements.push rvar_init
+    top_statements = top_statements.concat [ top_assign, top_call ]
+    top_block = new Block top_statements
+
+  icedCallContinuation : ->
+    @body.icedThreadReturn new IcedTailCall iced.const.n_while
+
+  icedCompileIced: (o) ->
+    opts = { @condition, @body, @guard }
+    if @returns
+      opts.rvar = o.scope.freeVariable 'results'
+    b = @icedWrap opts
+    return b.compileNode o
+
 #### Op
 
 # Simple Arithmetic and logical operations. Performs some conversion from
 # CoffeeScript operations into their JavaScript equivalents.
 exports.Op = class Op extends Base
   constructor: (op, first, second, flip ) ->
+    super()
     return new In first, second if op is 'in'
     if op is 'do'
       return @generateDo first
@@ -1998,9 +2180,12 @@ exports.Op = class Op extends Base
   toString: (idt) ->
     super idt, @constructor.name + ' ' + @operator
 
+  icedWrapContinuation : -> @icedCallContinuationFlag
+
 #### In
 exports.In = class In extends Base
   constructor: (@object, @array) ->
+    super()
 
   children: ['object', 'array']
 
@@ -2035,6 +2220,307 @@ exports.In = class In extends Base
 
   toString: (idt) ->
     super idt, @constructor.name + if @negated then '!' else ''
+
+#### Slot
+#
+#  A Slot is an argument passed to `defer(..)`.  It's a bit different
+#  from a normal parameters, since it's trying to implement pass-by-reference.
+#  It's used only in concert with the Defer class.  Splats and Values
+#  can be converted to slots with the `toSlot` method.
+#
+exports.Slot = class Slot extends Base
+  constructor : (index, value, suffix, splat) ->
+    super()
+    @index = index
+    @value = value
+    @suffix = suffix
+    @splat = splat
+    @access = null
+
+  addAccess : (a) ->
+    @access = a
+    this
+
+  children : [ 'value', 'suffix' ]
+
+#### Defer
+
+exports.Defer = class Defer extends Base
+  constructor : (args, @lineno) ->
+    super()
+    @slots = flatten (a.toSlot i for a,i in args)
+    @params = []
+    @vars = []
+
+  children : ['slots' ]
+
+  # Count hidden parameters up from 1.  Make a note of which parameter
+  # we passed out.  Return a copy of that parameter, in case we mutate
+  # it later before we output it.
+  newParam : ->
+    l = "#{iced.const.slot}_#{@params.length + 1}"
+    @params.push new Param new Literal l
+    new Value new Literal l
+
+  #
+  # makeAssignFn
+  #   - Implement C++-style pass-by-reference in Coffee
+  #
+  # the 'assign_fn' returned by here will set all parameters to defer()
+  # to have the appropriate values after the defer is fulfilled. The
+  # four cases to consider are listed in the following call:
+  #
+  #     defer(x, a.b, c.d[i], rest...)
+  #
+  # Case 1 -- defer(x) --  Regular assignment to a local variable
+  # Case 2 -- defer(a.b) --  Assignment to an object; must capture
+  #    object when defer() is called
+  # Case 3 -- defer(c.d[i]) --  Assignment to an array slot; must capture
+  #   array and slot index with defer() is called
+  # Case 4 -- defer(rest...) -- rest is an array, assign it to all
+  #   leftover arguments.
+  #
+  # There is a special subcase of Case 1, which we call case 1(b):
+  #
+  #    defer _
+  #
+  # In this case, the slot used is the return value for the surrounding await call,
+  # for cases such as:
+  #
+  #    x = await foo defer _
+  #
+  makeAssignFn : (o) ->
+    return null if @slots.length is 0
+    assignments = []
+    args = []
+    i = 0
+    for s in @slots
+      i = s.index
+      a = new Value new Literal "arguments"
+      i_lit = new Value new Literal i
+      if s.splat # case 4
+        func = new Value new Literal(utility 'slice')
+        func.add new Access new Value new Literal 'call'
+        call = new Call func, [ a, i_lit ]
+        slot = s.value
+        @vars.push slot
+        assign = new Assign slot, call
+      else
+        a.add new Index i_lit
+        if s.access
+          a.add new Access s.access
+        if not s.suffix # case 1
+          lit = s.value.compile o, LEVEL_TOP
+          if lit is "_"
+            slot = new Value new Literal iced.const.deferrals
+            slot.add new Access new Value new Literal iced.const.retslot
+          else
+            slot = s.value
+            @vars.push slot
+        else
+          args.push s.value
+          slot = @newParam()
+          if s.suffix instanceof Index # case 3
+            prop = new Index @newParam()
+            args.push s.suffix.index
+          else # case 2
+            prop = s.suffix
+          slot.add prop
+        assign = new Assign slot, a
+      assignments.push assign
+
+    block = new Block assignments
+    inner_fn = new Code [], block, 'icedgen'
+    outer_block = new Block [ new Return inner_fn ]
+    outer_fn = new Code @params, outer_block, 'icedgen'
+    call = new Call outer_fn, args
+
+  transform : (o) ->
+    # fn is 'Deferrals.defer'
+    fn = new Value new Literal iced.const.deferrals
+    meth = new Value new Literal iced.const.defer_method
+    fn.add new Access meth
+
+    # There is one argument to Deferrals.defer(), which is a dictionary.
+    # The dictionary currently only has one slot: assign_fn, which
+    #   indicates a function.
+    # More slots will be needed if we ever want to keep track of iced-aware
+    #   stack traces.
+    assignments = []
+    if (assign_fn = @makeAssignFn o)
+      assignments.push new Assign(new Value(new Literal(iced.const.assign_fn)),
+                                  assign_fn, "object")
+    ln_lhs = new Value new Literal iced.const.lineno
+    ln_rhs = new Value new Literal @lineno
+    ln_assign = new Assign ln_lhs, ln_rhs, "object"
+    assignments.push ln_assign
+    o = new Obj assignments
+
+    # Return the final call
+    new Call fn, [ new Value o ]
+
+  compileNode : (o) ->
+    call = @transform o
+    for v in @vars
+      name = v.compile o, LEVEL_LIST
+      scope = o.scope
+      scope.add name, 'var'
+    call.compileNode o
+
+  icedWalkAst : (p, o) ->
+    @icedHasAutocbFlag = o.foundAutocb
+    o.foundDefer = true
+    @parentFunc = o.currFunc
+    super p, o
+
+#### Await
+
+exports.Await = class Await extends Base
+  constructor : (@body) ->
+    super()
+
+  transform : (o) ->
+    body = @body
+    name = iced.const.deferrals
+    o.scope.add name, 'var'
+    lhs = new Value new Literal name
+    cls = new Value new Literal iced.const.ns
+    cls.add(new Access(new Value new Literal iced.const.Deferrals))
+
+    assignments = []
+    if n = @parentFunc?.icedPassedDeferral
+      cb_lhs = new Value new Literal iced.const.parent
+      cb_rhs = new Value new Literal n
+      cb_assignment = new Assign cb_lhs, cb_rhs, "object"
+      assignments.push cb_assignment
+
+    if o.filename?
+      fn_lhs = new Value new Literal iced.const.filename
+      fn_rhs = new Value new Literal '"' + o.filename + '"'
+      fn_assignment = new Assign fn_lhs, fn_rhs, "object"
+      assignments.push fn_assignment
+
+    if n = @parentFunc?.traceName()
+      func_lhs = new Value new Literal iced.const.funcname
+      func_rhs = new Value new Literal '"' + n + '"'
+      func_assignment = new Assign func_lhs, func_rhs, "object"
+      assignments.push func_assignment
+
+    trace = new Obj assignments, true
+    call = new Call cls, [ (new Value new Literal iced.const.k), trace ]
+    rhs = new Op "new", call
+    assign = new Assign lhs, rhs
+    body.unshift assign
+    meth = lhs.copy().add new Access new Value new Literal iced.const.fulfill
+    call = new Call meth, []
+    body.push (call)
+    @body = body
+
+  children: ['body']
+
+  # ??? Revisit!
+  isStatement: -> YES
+
+  makeReturn : THIS
+
+  compileNode: (o) ->
+    @transform(o)
+    @body.compile o
+
+  # We still need to walk our children to see if there are any embedded
+  # function which might also be iced.  But we're always going to report
+  # to our parent that we are iced, since we are!
+  icedWalkAst : (p, o) ->
+    @icedHasAutocbFlag = o.foundAutocb
+    @parentFunc = o.currFunc
+    p = p || this
+    @icedParentAwait = p
+    super p, o
+    @icedNodeFlag = o.foundAwaitFunc = o.foundAwait = true
+
+#### IcedRuntime
+#
+# By default, the iced libraries are require'd via nodejs' require.
+# You can change this behavior on the command line:
+#
+#    -I inline --- inlines a simplified runtime to the output file
+#    -I node   --- force node.js inclusion
+#    -I window --- attach the inlined runtime to the window.* object
+#    -I none   --- no inclusion, do it yourself...
+#
+class IcedRuntime extends Block
+  constructor: (@foundDefer, @foundAwait) ->
+    super()
+
+  compileNode: (o) ->
+    @expressions = []
+
+    v = if o.runtime    then o.runtime
+    else if o.bare      then "none"
+    else if @foundDefer then "node"
+    else                     "none"
+
+    if o.runtime and not @foundDefer and not o.runforce
+      v = "none"
+
+    window_mode = false
+    window_val = null
+
+    inc = null
+    inc = switch (v)
+      when "inline", "window"
+        window_mode = true if v is "window"
+        if window_mode
+          window_val = new Value new Literal v
+        InlineRuntime.generate(if window_val then window_val.copy() else null)
+      when "node", "browserify"
+        if v is "browserify"
+          modname = "iced-coffee-script/lib/coffee-script/iced"
+          accessname = iced.const.runtime
+        else
+          modname = "iced-coffee-script"
+          accessname = iced.const.ns
+        file = new Literal "'#{modname}'"
+        access = new Access new Literal accessname
+        req = new Value new Literal "require"
+        call = new Call req, [ file ]
+        callv = new Value call
+        callv.add access
+        ns = new Value new Literal iced.const.ns
+        new Assign ns, callv
+      when "none" then null
+      else throw SyntaxError "unexpected flag IcedRuntime #{v}"
+
+    @push inc if inc
+
+    if @foundAwait
+      
+      # Emit __iced_k = __iced_k_noop = function(){} 
+      rhs = new Code [], new Block []
+
+      lhs_vec = []
+      for k in [ iced.const.k_noop, iced.const.k ]
+        val = new Value new Literal k
+        
+        # Add window. if necessary
+        if window_val
+          klass = window_val.copy()
+          klass.add new Access val
+          val = klass
+          
+        lhs_vec.push val
+          
+      assign = rhs
+      for v in lhs_vec
+        assign = new Assign v, assign
+      @push assign
+
+    if @isEmpty() then null
+    else               super o
+
+  icedWalkAst : (p,o) ->
+    @icedHasAutocbFlag = o.foundAutocb
+    super p, o
 
 #### Try
 
@@ -2080,6 +2566,7 @@ exports.Try = class Try extends Base
 # Simple node to throw an exception.
 exports.Throw = class Throw extends Base
   constructor: (@expression) ->
+    super()
 
   children: ['expression']
 
@@ -2099,6 +2586,7 @@ exports.Throw = class Throw extends Base
 # table.
 exports.Existence = class Existence extends Base
   constructor: (@expression) ->
+    super()
 
   children: ['expression']
 
@@ -2124,6 +2612,7 @@ exports.Existence = class Existence extends Base
 # Parentheses are a good way to force any statement to become an expression.
 exports.Parens = class Parens extends Base
   constructor: (@body) ->
+    super()
 
   children: ['body']
 
@@ -2151,6 +2640,7 @@ exports.Parens = class Parens extends Base
 # you can map and filter in a single pass.
 exports.For = class For extends While
   constructor: (body, source) ->
+    super()
     {@source, @guard, @step, @name, @index} = source
     @body    = Block.wrap [body]
     @own     = !!source.own
@@ -2191,6 +2681,9 @@ exports.For = class For extends While
     guardPart = ''
     defPart   = ''
     idt1      = @tab + TAB
+
+    return @icedCompileIced(o, { stepvar, body, rvar, kvar, @guard }) if @icedNodeFlag
+
     if @range
       forPartFragments = source.compileToFragments merge(o, {index: ivar, name, @step})
     else
@@ -2262,11 +2755,102 @@ exports.For = class For extends While
       defs = defs.concat @makeCode(@tab), (new Assign(ref, fn).compileToFragments(o, LEVEL_TOP)), @makeCode(';\n')
     defs
 
+  icedCompileIced: (o, d) ->
+    body = d.body
+    condition = null
+    init = []
+    step = null
+    scope = o.scope
+    pre_body = new Block []
+
+    # Handle 'for k,v of obj'
+    if @object
+      # _ref = source
+      ref = scope.freeVariable 'ref'
+      ref_val = new Value new Literal ref
+      a1 = new Assign ref_val, @source
+
+      # keys = for k of _ref
+      #   k
+      keys = scope.freeVariable 'keys'
+      keys_val = new Value new Literal keys
+      key = scope.freeVariable 'k'
+      key_lit = new Literal key
+      key_val = new Value key_lit
+      empty_arr = new Value new Arr
+      loop_body = new Block [ key_val ]
+      loop_source = { object : yes, name : key_lit, source : ref_val }
+      loop_keys = new For loop_body, loop_source
+      a2 = new Assign keys_val, loop_keys
+
+      # _i = 0
+      iname = scope.freeVariable 'i'
+      ival = new Value new Literal iname
+      a3 = new Assign ival, new Value new Literal 0
+
+      init = [ a1, a2, a3 ]
+
+      # _i < keys.length
+      keys_len = keys_val.copy()
+      keys_len.add new Access new Value new Literal "length"
+      condition = new Op '<', ival, keys_len
+
+      # _i++
+      step = new Op '++', ival
+
+      # value = _ref[name]
+      if @name
+        source_access = ref_val.copy()
+        source_access.add new Index @index
+        a5 = new Assign @name, source_access
+        pre_body.unshift a5
+
+      # key = keys[_i]
+      keys_access = keys_val.copy()
+      keys_access.add new Index ival
+      a4 = new Assign @index, keys_access
+      pre_body.unshift a4
+
+    # Handle the case of 'for i in [0..10]'
+    else if @range and @name
+      rop = if @source.base.exclusive then '<' else '<='
+      condition = new Op rop, @name, @source.base.to
+      init = [ new Assign @name, @source.base.from ]
+      if @step?
+        step = new Op "+=", @name, @step
+      else
+        step = new Op '++', @name
+
+    # Handle the case of 'for i,blah in arr'
+    else if ! @range and @name
+      kval = new Value new Literal d.kvar
+      len = scope.freeVariable 'len'
+      ref = scope.freeVariable 'ref'
+      ref_val = new Value new Literal ref
+      len_val = new Value new Literal len
+      a1 = new Assign ref_val, @source
+      len_rhs = ref_val.copy().add new Access new Value new Literal "length"
+      a2 = new Assign len_val, len_rhs
+      a3 = new Assign kval, new Value new Literal 0
+      init = [ a1, a2, a3 ]
+      condition = new Op '<', kval, len_val
+      step = new Op '++', kval
+      ref_val_copy = ref_val.copy()
+      ref_val_copy.add new Index kval
+      a4 = new Assign @name, ref_val_copy
+      pre_body.unshift a4
+
+    rvar = d.rvar
+    guard = d.guard
+    b = @icedWrap { condition, body, init, step, rvar, guard, pre_body }
+    b.compileNode o
+
 #### Switch
 
 # A JavaScript *switch* statement. Converts into a returnable expression on-demand.
 exports.Switch = class Switch extends Base
   constructor: (@subject, @cases, @otherwise) ->
+    super()
 
   children: ['subject', 'cases', 'otherwise']
 
@@ -2303,6 +2887,16 @@ exports.Switch = class Switch extends Base
     fragments.push @makeCode @tab + '}'
     fragments
 
+  icedCallContinuation : ->
+    for [condition,block] in @cases
+      block.icedThreadReturn()
+    if @otherwise?
+      @otherwise.icedThreadReturn()
+    else
+      # See github issue #55.  If no else: was specified,
+      # we still need to call back the current continuation
+      @otherwise = new Block [ new IcedTailCall ]
+
 #### If
 
 # *If/else* statements. Acts as an expression by pushing down requested returns
@@ -2312,6 +2906,7 @@ exports.Switch = class Switch extends Base
 # because ternaries are already proper expressions, and don't need conversion.
 exports.If = class If extends Base
   constructor: (condition, @body, options = {}) ->
+    super()
     @condition = if options.type is 'unless' then condition.invert() else condition
     @elseBody  = null
     @isChain   = false
@@ -2340,7 +2935,7 @@ exports.If = class If extends Base
   jumps: (o) -> @body.jumps(o) or @elseBody?.jumps(o)
 
   compileNode: (o) ->
-    if @isStatement o then @compileStatement o else @compileExpression o
+    if @isStatement o or @icedIsCpsPivot() then @compileStatement o else @compileExpression o
 
   makeReturn: (res) ->
     @elseBody  or= new Block [new Literal 'void 0'] if res
@@ -2384,6 +2979,17 @@ exports.If = class If extends Base
 
   unfoldSoak: ->
     @soak and this
+
+  # propogate the closing continuation call down both branches of the if.
+  # note this prevents if ...else if... inline chaining, and makes it
+  # fully nested if { .. } else { if { } ..} ..'s
+  icedCallContinuation : ->
+    if @elseBody
+      @elseBody.icedThreadReturn()
+      @isChain = false
+    else
+      @addElse new IcedTailCall
+    @body.icedThreadReturn()
 
 # Faux-Nodes
 # ----------
@@ -2429,6 +3035,209 @@ unfoldSoak = (o, parent, name) ->
   ifn.body = new Value parent
   ifn
 
+#### CpsCascade
+
+CpsCascade =
+
+  wrap: (statement, rest, returnValue, o) ->
+    func = new Code [ new Param new Literal iced.const.k ],
+      (Block.wrap [ statement ]), 'icedgen'
+    args = []
+    if returnValue
+      returnValue.bindName o
+      args.push returnValue
+
+    block = Block.wrap [ rest ]
+
+    # Optimization! If the block is just a tail call to another continuation
+    # that can be inlined, then we just call that call directly.
+    if (e = block.getSingle()) and e instanceof IcedTailCall and e.canInline()
+      cont = e.extractFunc()
+    else
+      cont = new Code args, block, 'icedgen'
+
+    call = new Call func, [ cont ]
+    new Block [ call ]
+
+#### TailCall
+#
+# At the end of a iced if, loop, or switch statement, we tail call off
+# to the next continuation
+
+class IcedTailCall extends Base
+  constructor : (@func, val = null) ->
+    super()
+    @func = iced.const.k unless @func
+    @value = val
+
+  children : [ 'value' ]
+
+  assignValue : (v) ->
+    @value = v
+
+  canInline : ->
+    return not @value or @value instanceof IcedReturnValue
+
+  literalFunc: -> new Literal @func
+  extractFunc: -> new Value @literalFunc()
+
+  compileNode : (o) ->
+    f = @literalFunc()
+    out = if o.level is LEVEL_TOP
+      if @value
+        new Block [ @value, new Call f ]
+      else
+        new Call f
+    else
+      args = if @value then [ @value ] else []
+      new Call f, args
+    out.compileNode o
+
+#### IcedReturnValue
+#
+# A variable reference to a deferred computation
+
+class IcedReturnValue extends Param
+  @counter : 0
+  constructor : () ->
+    super null, null, no
+
+  bindName : (o) ->
+    l = "#{o.scope.freeVariable iced.const.param, no}_#{IcedReturnValue.counter++}"
+    @name = new Literal l
+
+  compile : (o) ->
+    @bindName o if not @name
+    super o
+
+#### Runtime class and funcs, the most basic one...
+
+InlineRuntime =
+
+  # Generate this code, inline. Is there a better way?
+  #
+  # iced =
+  #   Deferrals : class
+  #     constructor: (@continuation) ->
+  #       @count = 1
+  #       @ret = null
+  #     _fulfill : ->
+  #       @continuation @ret if not --@count
+  #     defer : (defer_params) ->
+  #       @count++
+  #       (inner_params...) =>
+  #         defer_params?.assign_fn?.apply(null, inner_params)
+  #         @_fulfill()
+  #   findDeferral : (args) -> null
+  #
+  generate : (ns_window) ->
+    k = new Literal "continuation"
+    cnt = new Literal "count"
+    cn = new Value new Literal iced.const.Deferrals
+    ns = new Value new Literal iced.const.ns
+    if ns_window # window.iced = ...
+      ns_window.add new Access ns
+      ns = ns_window
+
+    # make the constructor:
+    #
+    #   constructor: (@continuation) ->
+    #     @count = 1
+    #     @ret = null
+    #
+    k_member = new Value new Literal "this"
+    k_member.add new Access k
+    p1 = new Param k_member
+    cnt_member = new Value new Literal "this"
+    cnt_member.add new Access cnt
+    ret_member = new Value new Literal "this"
+    ret_member.add new Access new Value new Literal iced.const.retslot
+    a1 = new Assign cnt_member, new Value new Literal 1
+    a2 = new Assign ret_member, NULL()
+    constructor_params = [ p1 ]
+    constructor_body = new Block [ a1, a2 ]
+    constructor_code = new Code constructor_params, constructor_body
+    constructor_name = new Value new Literal "constructor"
+    constructor_assign = new Assign constructor_name, constructor_code
+
+    # make the _fulfill member:
+    #
+    #   _fulfill : ->
+    #     @continuation @ret if not --@count
+    #
+    if_expr = new Call k_member, [ ret_member ]
+    if_body = new Block [ if_expr ]
+    decr = new Op '--', cnt_member
+    if_cond = new Op '!', decr
+    my_if = new If if_cond, if_body
+    _fulfill_body = new Block [ my_if ]
+    _fulfill_code = new Code [], _fulfill_body
+    _fulfill_name = new Value new Literal iced.const.fulfill
+    _fulfill_assign = new Assign _fulfill_name, _fulfill_code
+
+    # Make the defer member:
+    #   defer : (defer_params) ->
+    #     @count++
+    #     (inner_params...) ->
+    #       defer_params?.assign_fn?.apply(null, inner_params)
+    #       @_fulfill()
+    #
+    inc = new Op "++", cnt_member
+    ip = new Literal "inner_params"
+    dp = new Literal "defer_params"
+    dp_value = new Value dp
+    call_meth = new Value dp
+    af = new Literal iced.const.assign_fn
+    call_meth.add new Access af, "soak"
+    my_apply = new Literal "apply"
+    call_meth.add new Access my_apply, "soak"
+    my_null = NULL()
+    apply_call = new Call call_meth, [ my_null, new Value ip ]
+    _fulfill_method = new Value new Literal "this"
+    _fulfill_method.add new Access new Literal iced.const.fulfill
+    _fulfill_call = new Call _fulfill_method, []
+    inner_body = new Block [ apply_call, _fulfill_call ]
+    inner_params = [ new Param ip, null, on ]
+    inner_code = new Code inner_params, inner_body, "boundfunc"
+    defer_body = new Block [ inc, inner_code ]
+    defer_params = [ new Param dp ]
+    defer_code = new Code defer_params, defer_body
+    defer_name = new Value new Literal iced.const.defer_method
+    defer_assign = new Assign defer_name, defer_code
+
+    # Piece the class together
+    assignments = [ constructor_assign, _fulfill_assign, defer_assign ]
+    obj = new Obj assignments, true
+    body = new Block [ new Value obj ]
+    klass = new Class null, null, body
+    klass_assign = new Assign cn, klass, "object"
+
+    # A stub so that the function still works
+    #      findDeferral : (args) -> null
+    outer_block = new Block [ NULL() ]
+    fn_code = new Code [ ], outer_block
+    fn_name = new Value new Literal iced.const.findDeferral
+    fn_assign = new Assign fn_name, fn_code, "object"
+
+    # A stub trampoline so that it strill works:
+    #     trampoline : (fn) -> fn()
+    fn = new Literal "_fn"
+    tr_block = new Block [ new Call (new Value fn), [] ]
+    tr_params = [ new Param fn ]
+    tr_code = new Code tr_params, tr_block
+    tr_name = new Value new Literal iced.const.trampoline
+    tr_assign = new Assign tr_name, tr_code, "object"
+
+    # iced =
+    #   Deferrals : <class>
+    #   findDeferral : <code>
+    #   trampoline : <code>
+    #
+    ns_obj = new Obj [ klass_assign, fn_assign, tr_assign ], true
+    ns_val = new Value ns_obj
+    new Assign ns, ns_val
+
+# Unfold a node's child if soak, then tuck the node under created `If`
 # Constants
 # ---------
 
