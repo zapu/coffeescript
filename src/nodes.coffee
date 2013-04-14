@@ -87,7 +87,7 @@ exports.Base = class Base
     node     = @unfoldSoak(o) or this
     node.tab = o.indent
     if node.icedHasContinuation() and not node.icedGotCpsSplitFlag
-      node.compileCps o
+      node.icedCompileCps o
     else if o.level is LEVEL_TOP or not node.isStatement(o)
       node.compileNode o
     else
@@ -212,6 +212,15 @@ exports.Base = class Base
       for child in flatten [@[attr]]
         out.push (child)
     out
+
+  # Statements that need CPS translation will have to be split into
+  # pieces like so.
+  icedCompileCps : (o) ->
+    @icedGotCpsSplitFlag = true
+    code = CpsCascade.wrap this, @icedContinuationBlock, null, o
+    code.compile o
+
+  # If the code generation wishes to use the result of a complex expression
 
   #
   # AST Walking Routines for CPS Pivots, etc.
@@ -354,6 +363,7 @@ exports.Base = class Base
 # `if`, `switch`, or `try`, and so on...
 exports.Block = class Block extends Base
   constructor: (nodes) ->
+    super()
     @expressions = compact flatten nodes or []
 
   children: ['expressions']
@@ -375,7 +385,7 @@ exports.Block = class Block extends Base
   # If this Block consists of just a single node, unwrap it by pulling
   # it back out.
   unwrap: ->
-    if @expressions.length is 1 then @expressions[0] else this
+    if @expressions.length is 1 then @icedUnwrap @expressions[0] else this
 
   # Is this an empty block of code?
   isEmpty: ->
@@ -505,6 +515,142 @@ exports.Block = class Block extends Base
   @wrap: (nodes) ->
     return nodes[0] if nodes.length is 1 and nodes[0] instanceof Block
     new Block nodes
+
+  # Start iced additions
+
+  # When returning from a block, we need to maybe call into a continuation.
+  # This call will thread that "return / call-continuation" through this
+  # block.
+  icedThreadReturn: (call)  ->
+    call = call || new IcedTailCall
+    len = @expressions.length
+    while len--
+      expr = @expressions[len]
+
+      # If the last expression in the block is either a bonafide statement
+      # or if it's going to be pivoted, then don't thread the return value
+      # through the IcedTailCall, just bolt it onto the end.
+      if expr.isStatement()
+        break
+
+      # In this case, we have a value that we're going to return out
+      # of the block, so apply the IcedTamilCall onto the value
+      if expr not instanceof Comment and expr not instanceof Return
+        call.assignValue expr
+        @expressions[len] = call
+        return
+
+    # if nothing was found, just push the call on
+    @expressions.push call
+
+  # Optimization!
+  # Blocks typically don't need their own cpsCascading.  This saves
+  # wasted code.
+  icedCompileCps : (o) ->
+    @icedGotCpsSplitFlag = true
+    if @expressions.length > 1
+      super o
+    else
+      @compileNode o
+
+  #
+  # icedCpsRotate -- This is the key abstract syntax tree rotation of the
+  # CPS translation. Take a block with a bunch of sequential statements
+  # and "pivot" the AST on the first available pivot.  The expressions
+  # on the LHS of the pivot stay where the are.  The expressions on the RHS
+  # of the pivot become the pivot's continuation. And the process is applied
+  # recursively.
+  #
+  icedCpsRotate : ->
+    pivot = null
+
+    # Go ahead an look for a pivot
+    for e,i in @expressions
+      if e.icedIsCpsPivot()
+        pivot = e
+        # The pivot value needs to call the currently active continuation
+        # after it's all done.  For things like if..else.. this does something
+        # interesting and pushes the continuation down both branches.
+        # Note that it's convenient to do this **before** anything is
+        # rotated.
+        pivot.icedCallContinuation()
+
+      # Recursively rotate the children, in depth-first order.
+      e.icedCpsRotate()
+
+      # If we've found a pivot, then we break out of here, and then
+      # handle the rest of these children
+      break if pivot
+
+    # If there's no pivot, then the above should be as in the base
+    # class, and it's safe to return out of here.
+    #
+    # We find a pivot if this node has taming, and it's not an Await
+    # itself.
+    return this unless pivot
+
+    # We should never have a continuation here, even though we rotated
+    # this guy above.  This is true because:
+    #   1. The Pivot must be a statement....
+    #   2. If pivot is a statement, then the continuation will be in the
+    #      grandchild Block node
+    if pivot.icedContinuationBlock
+      throw SyntaxError "unexpected continuation block in node"
+
+    # These are the expressions on the RHS of the pivot split
+    rest = @expressions.slice(i+1)
+
+    # Leave the pivot in the list of expressions
+    @expressions = @expressions.slice(0,i+1)
+
+    # If there are elements in rest, then we need to nest a continuation block
+    if rest.length
+      child = new Block rest
+      pivot.icedNestContinuationBlock child
+
+      # Pass our node bits onto our new children
+      for e in rest
+        child.icedNodeFlag = true      if e.icedNodeFlag
+        child.icedLoopFlag = true      if e.icedLoopFlag
+        child.icedCpsPivotFlag = true  if e.icedCpsPivotFlag
+        child.icedHasAutocbFlag = true if e.icedHasAutocbFlag
+
+      # now recursive apply the transformation to the new child,
+      # this being especially important in blocks that have multiple
+      # awaits on the same level
+      child.icedCpsRotate()
+
+    # return this for chaining
+    this
+
+  # Paste in a require or inline code, depending on the strategy requested
+  icedAddRuntime : (foundDefer, foundAwait) ->
+    index = 0
+    while (node = @expressions[index]) and node instanceof Comment or
+        node instanceof Value and node.isString()
+      index++
+    @expressions.splice index, 0, (new IcedRuntime foundDefer, foundAwait)
+
+  # Perform all steps of the Iced transform
+  icedTransform : ->
+
+    # we need to do at least 1 walk -- do the most important walk first
+    obj = {}
+    @icedWalkAst null, obj
+
+    # Add a runtime if necessary
+    @icedAddRuntime obj.foundDefer, obj.foundAwait
+
+    # short-circuit here for optimization. If we didn't find await
+    # then no need to iced anything in this AST
+    if obj.foundAwait
+      @icedWalkAstLoops false
+      @icedWalkCpsPivots()
+      @icedCpsRotate()
+
+    this
+
+  # end iced additions
 
 #### Literal
 
