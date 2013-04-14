@@ -7,6 +7,7 @@ Error.stackTraceLimit = Infinity
 
 {Scope} = require './scope'
 {RESERVED, STRICT_PROSCRIBED} = require './lexer'
+iced = require './iced'
 
 # Import the helpers we plan to use.
 {compact, flatten, extend, merge, del, starts, ends, last, some,
@@ -21,6 +22,7 @@ YES     = -> yes
 NO      = -> no
 THIS    = -> this
 NEGATE  = -> @negated = not @negated; this
+NULL    = -> new Value new Literal 'null'
 
 #### CodeFragment
 
@@ -54,6 +56,22 @@ fragmentsToText = (fragments) ->
 # scope, and indentation level.
 exports.Base = class Base
 
+  constructor: ->
+    @icedContinuationBlock = null
+
+    # iced AST node flags -- since we make several passes through the
+    # tree setting these bits, we'll actually just flip bits in the nodes,
+    # rather than setting function pointers to YES or NO.
+    @icedLoopFlag        = false
+    @icedNodeFlag        = false
+    @icedGotCpsSplitFlag = false
+    @icedCpsPivotFlag    = false
+    @icedHasAutocbFlag   = false
+    @icedFoundArguments  = false
+    @icedParentAwait     = null
+    @icedCallContinuationFlag = false
+
+  # Common logic for determining whether to wrap this node in a closure before
   compile: (o, lvl) ->
     fragmentsToText @compileToFragments o, lvl
 
@@ -68,7 +86,9 @@ exports.Base = class Base
     o.level  = lvl if lvl
     node     = @unfoldSoak(o) or this
     node.tab = o.indent
-    if o.level is LEVEL_TOP or not node.isStatement(o)
+    if node.icedHasContinuation() and not node.icedGotCpsSplitFlag
+      node.compileCps o
+    else if o.level is LEVEL_TOP or not node.isStatement(o)
       node.compileNode o
     else
       node.compileClosure o
@@ -79,6 +99,16 @@ exports.Base = class Base
     if jumpNode = @jumps()
       jumpNode.error 'cannot use a pure statement in an expression'
     o.sharedScope = yes
+    # Solution for an iced corner case:
+    #
+    # foo = (autocb) ->
+    #   x = (i for i in [0..10])
+    #   x
+    #
+    #  We don't want the autocb to fire in the evaluation of the list
+    #  comprehension on the RHS.
+    #
+    @icedClearAutocbFlags()
     Closure.wrap(this).compileNode o
 
   # If the code generation wishes to use the result of a complex expression
@@ -131,9 +161,24 @@ exports.Base = class Base
   # `toString` representation of the node, for inspecting the parse tree.
   # This is what `coffee --nodes` prints out.
   toString: (idt = '', name = @constructor.name) ->
+    extras = [] 
+    extras.push "A" if @icedNodeFlag
+    extras.push "L" if @icedLoopFlag
+    extras.push "P" if @icedCpsPivotFlag
+    extras.push "C" if @icedHasAutocbFlag
+    extras.push "D" if @icedParentAwait
+    extras.push "G" if @icedFoundArguments
+    if extras.length
+      extras = " (" + extras.join('') + ")"
+    tree = '\n' + idt + name
     tree = '\n' + idt + name
     tree += '?' if @soak
+    tree += extras
     @eachChild (node) -> tree += node.toString idt + TAB
+    if @icedContinuationBlock
+      idt += TAB
+      tree += '\n' + idt + "Continuation"
+      tree += @icedContinuationBlock.toString idt + TAB
     tree
 
   # Passes each child to a function, breaking when the function returns `false`.
@@ -157,6 +202,106 @@ exports.Base = class Base
     continue until node is node = node.unwrap()
     node
 
+  # Start iced additions...
+
+  # Don't try this at home with actual human kids.  Added for iced
+  # for slightly different tree traversal mechanics.
+  flattenChildren : ->
+    out = []
+    for attr in @children when @[attr]
+      for child in flatten [@[attr]]
+        out.push (child)
+    out
+
+  #
+  # AST Walking Routines for CPS Pivots, etc.
+  #
+  #  There are three passes:
+  #    1. Find await's and trace upward.
+  #    2. Find loops found in #1, and flood downward
+  #    3. Find break/continue found in #2, and trace upward
+  #
+
+  # icedWalkAst
+  #
+  #   Walk the AST looking for taming. Mark a node as with iced flags
+  #   if any of its children are iced, but don't cross scope boundary
+  #   when considering the children.
+  #
+  #   The paremeter `p` is the parent `await`.  All nodes beneath the
+  #   first `await` in a function scope should point to its highest
+  #   parent `await`.  This is so in the case of nested `await`s,
+  #   they're really pulled out and run in sequence as the level of the
+  #   topmost await.
+  #
+  #   The parameter `o` is a global object, passed through all without
+  #   copies, to push information up and down the AST. This parameter is
+  #   used with subfields:
+  #
+  #      o.foundAutocb    -- on if the parent function has an autocb
+  #      o.foundDefer     -- on if defer() was found anywhere in the AST
+  #      o.foundAwait     -- on if await... was found anywhere in the AST
+  #      o.foundAwaitFunc -- on if await found in this func
+  #      o.currFunc       -- the current func we're in
+  #      o.foundArguments -- on if we found reference to 'arguments'
+  #
+  icedWalkAst : (p, o) ->
+    @icedParentAwait = p
+    @icedHasAutocbFlag = o.foundAutocb
+    for child in @flattenChildren()
+      @icedNodeFlag = true if child.icedWalkAst p, o
+    @icedNodeFlag
+
+  # icedWalkAstLoops
+  #   Walk all loops that are marked as "iced" and mark their children
+  #   as being children in a iced loop. They'll need more translations
+  #   than other nodes. Eventually, "switch" statements might also be "loops"
+  icedWalkAstLoops : (flood) ->
+    flood = true if  @isLoop() and @icedNodeFlag
+    flood = false if @isLoop() and not @icedNodeFlag
+    @icedLoopFlag = flood
+    for child in @flattenChildren()
+      @icedLoopFlag = true if child.icedWalkAstLoops flood
+    @icedLoopFlag
+
+  # icedWalkCpsPivots
+  #   A node is marked as a "cpsPivot" of it is (a) a 'iced' node,
+  #   (b) a jump node in a iced while loop; or (c) an ancestor of (a) or (b).
+  icedWalkCpsPivots : ->
+    @icedCpsPivotFlag = true if @icedNodeFlag or (@icedLoopFlag and @icedIsJump())
+    for child in @flattenChildren()
+      @icedCpsPivotFlag = true if child.icedWalkCpsPivots()
+    @icedCpsPivotFlag
+
+  icedClearAutocbFlags : ->
+    @icedHasAutocbFlag = false
+    @traverseChildren false, (node) ->
+      node.icedHasAutocbFlag = false
+      true
+
+  # A generic iced AST rotation is just to push down to its children
+  icedCpsRotate: ->
+    for child in @flattenChildren()
+      child.icedCpsRotate()
+    this
+
+  icedIsCpsPivot            :     -> @icedCpsPivotFlag
+  icedNestContinuationBlock : (b) -> @icedContinuationBlock = b
+  icedHasContinuation       :     -> (!!@icedContinuationBlock)
+  icedCallContinuation      :     -> @icedCallContinuationFlag = true
+  icedWrapContinuation      :     NO
+  icedIsJump                :     NO
+
+  icedUnwrap: (e) ->
+    if e.icedHasContinuation() and @icedHasContinuation()
+      this
+    else
+      if @icedHasContinuation()
+        e.icedContinuationBlock = @icedContinuationBlock
+      e
+
+  # End iced additions...
+
   # Default implementations of the common node properties and methods. Nodes
   # will override these with custom logic, if needed.
   children: []
@@ -166,6 +311,7 @@ exports.Base = class Base
   isComplex       : YES
   isChainable     : NO
   isAssignable    : NO
+  isLoop          : NO
 
   unwrap     : THIS
   unfoldSoak : NO
@@ -1478,6 +1624,7 @@ exports.While = class While extends Base
   children: ['condition', 'guard', 'body']
 
   isStatement: YES
+  isLoop : YES
 
   makeReturn: (res) ->
     if res
