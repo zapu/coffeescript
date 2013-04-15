@@ -2452,7 +2452,7 @@ class IcedRuntime extends Block
   constructor: (@foundDefer, @foundAwait) ->
     super()
 
-  compileNode: (o) ->
+  compileNode: (o, level) ->
     @expressions = []
 
     v = if o.runtime    then o.runtime
@@ -2515,7 +2515,7 @@ class IcedRuntime extends Block
         assign = new Assign v, assign
       @push assign
 
-    if @isEmpty() then null
+    if @isEmpty() then []
     else               super o
 
   icedWalkAst : (p,o) ->
