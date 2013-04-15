@@ -323,7 +323,7 @@ grammar =
     o 'SUPER',                                  -> new Call 'super', [new Splat new Literal 'arguments']
     o 'SUPER Arguments',                        -> new Call 'super', $2
   ]
-  
+
   Defer : [
     o 'DEFER Arguments',                        -> new Defer $2, yylineno
   ]
