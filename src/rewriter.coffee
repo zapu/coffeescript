@@ -224,7 +224,8 @@ class exports.Rewriter
           not tokens[i + 1]?.spaced and not tokens[i + 1]?.newLine)
         tag = token[0] = 'FUNC_EXIST' if tag is '?'
         startImplicitCall i + 1
-        return forward(2)
+        ret = forward(2)
+        return ret
 
       # Implicit call taking an implicit indented object as first argument.
       #

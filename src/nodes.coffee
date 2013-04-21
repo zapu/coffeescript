@@ -218,7 +218,7 @@ exports.Base = class Base
   icedCompileCps : (o) ->
     @icedGotCpsSplitFlag = true
     code = CpsCascade.wrap this, @icedContinuationBlock, null, o
-    code.compile o
+    code.compileNode o
 
   # If the code generation wishes to use the result of a complex expression
 
@@ -653,6 +653,10 @@ exports.Block = class Block extends Base
 
     this
 
+  # Like unwrap, but will return if not a single
+  icedGetSingle : ->
+    if @expressions.length is 1 then @expressions[0] else null
+
   # end iced additions
 
 #### Literal
@@ -872,6 +876,15 @@ exports.Value = class Value extends Base
           snd.base = ref
         return new If new Existence(fst), snd, soak: on
       no
+
+  # If this value is being used as a slot for the purposes of a defer
+  # then export it here
+  icedToSlot : (i) ->
+    return @base.icedToSlot i if @base instanceof Obj
+    sufffix = null
+    if @properties and @properties.length
+      suffix = @properties.pop()
+      return new Slot i, this, suffix
 
 #### Comment
 
@@ -1250,6 +1263,13 @@ exports.Obj = class Obj extends Base
   assigns: (name) ->
     for prop in @properties when prop.assigns name then return yes
     no
+
+  icedToSlot : (i) ->
+    for prop in @properties
+      if prop instanceof Assign
+        (prop.value.icedToSlot i).addAccess prop.variable
+      else if prop instanceof Value
+        (prop.icedToSlot i).addAccess prop
 
 #### Arr
 
@@ -1883,6 +1903,10 @@ exports.Splat = class Splat extends Base
     concatPart = list[index].joinFragmentArrays args, ', '
     [].concat list[0].makeCode("["), base, list[index].makeCode("].concat("), concatPart, (last list).makeCode(")")
 
+  icedToSlot: (i) ->
+    new Slot(i, new Value(@name), null, true)
+    
+
 #### While
 
 # A while loop, the only sort of low-level loop exposed by CoffeeScript. From
@@ -2226,7 +2250,7 @@ exports.In = class In extends Base
 #  A Slot is an argument passed to `defer(..)`.  It's a bit different
 #  from a normal parameters, since it's trying to implement pass-by-reference.
 #  It's used only in concert with the Defer class.  Splats and Values
-#  can be converted to slots with the `toSlot` method.
+#  can be converted to slots with the `icedToSlot` method.
 #
 exports.Slot = class Slot extends Base
   constructor : (index, value, suffix, splat) ->
@@ -2248,7 +2272,7 @@ exports.Slot = class Slot extends Base
 exports.Defer = class Defer extends Base
   constructor : (args, @lineno) ->
     super()
-    @slots = flatten (a.toSlot i for a,i in args)
+    @slots = flatten (a.icedToSlot i for a,i in args)
     @params = []
     @vars = []
 
@@ -2425,7 +2449,7 @@ exports.Await = class Await extends Base
 
   compileNode: (o) ->
     @transform(o)
-    @body.compile o
+    @body.compileNode o
 
   # We still need to walk our children to see if there are any embedded
   # function which might also be iced.  But we're always going to report
@@ -3051,7 +3075,7 @@ CpsCascade =
 
     # Optimization! If the block is just a tail call to another continuation
     # that can be inlined, then we just call that call directly.
-    if (e = block.getSingle()) and e instanceof IcedTailCall and e.canInline()
+    if (e = block.icedGetSingle()) and e instanceof IcedTailCall and e.canInline()
       cont = e.extractFunc()
     else
       cont = new Code args, block, 'icedgen'
