@@ -44,6 +44,7 @@ o = (patternString, action, options) ->
   # in, and returns the parameter.  If the parameter is not a node, it will
   # just be passed through unaffected.
   addLocationDataFn = (first, last) ->
+    console.log "addLocationDataFn #{patternString}"
     if not last
       "yy.addLocationDataFn(@#{first})"
     else

@@ -884,7 +884,7 @@ exports.Value = class Value extends Base
     sufffix = null
     if @properties and @properties.length
       suffix = @properties.pop()
-      return new Slot i, this, suffix
+    return new Slot i, this, suffix
 
 #### Comment
 
@@ -1069,7 +1069,7 @@ exports.Access = class Access extends Base
 
   compileToFragments: (o) ->
     name = @name.compileToFragments o
-    if IDENTIFIER.test fragmentsToText name
+    if (IDENTIFIER.test fragmentsToText name) or @name instanceof Defer
       name.unshift @makeCode "."
     else
       name.unshift @makeCode "["
@@ -1788,6 +1788,12 @@ exports.Code = class Code extends Base
     super()
     @icedCpsPivotFlag = false
 
+  icedTraceName : ->
+    parts = []
+    parts.push @klass if @klass
+    parts.push @name if @name
+    parts.join '.'
+
 #### Param
 
 # A parameter in a function definition. Beyond a typical Javascript parameter,
@@ -2424,7 +2430,7 @@ exports.Await = class Await extends Base
       fn_assignment = new Assign fn_lhs, fn_rhs, "object"
       assignments.push fn_assignment
 
-    if n = @parentFunc?.traceName()
+    if n = @parentFunc?.icedTraceName()
       func_lhs = new Value new Literal iced.const.funcname
       func_rhs = new Value new Literal '"' + n + '"'
       func_assignment = new Assign func_lhs, func_rhs, "object"
