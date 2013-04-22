@@ -138,7 +138,7 @@ exports.Base = class Base
     if res
       new Call new Literal("#{res}.push"), [me]
     else
-      new Return me
+      new Return me, @icedHasAutocbFlag
 
   # Does this node, or any of its children, contain a node of a certain kind?
   # Recursively traverses down the *children* nodes and returns the first one
@@ -407,12 +407,20 @@ exports.Block = class Block extends Base
   # ensures that the final expression is returned.
   makeReturn: (res) ->
     len = @expressions.length
+    foundReturn = false
     while len--
       expr = @expressions[len]
       if expr not instanceof Comment
         @expressions[len] = expr.makeReturn res
-        @expressions.splice(len, 1) if expr instanceof Return and not expr.expression
+        if expr instanceof Return and
+           not expr.expression and not expr.icedHasAutocbFlag
+          @expressions.splice(len, 1)
+          foundReturn = true
+        else if not (expr instanceof If) or expr.elseBody
+          foundReturn = true
         break
+    if @icedHasAutocbFlag and not @icedNodeFlag and not foundReturn
+      @expressions.push(new Return null, true)
     this
 
   # A **Block** is the only node that can serve as the root.
@@ -1471,6 +1479,7 @@ exports.Assign = class Assign extends Base
     forbidden = (name = @variable.unwrapAll().value) in STRICT_PROSCRIBED
     if forbidden and @context isnt 'object'
       @variable.error "variable name may not be \"#{name}\""
+    @icedlocal = options and options.icedlocal        
 
   children: ['variable', 'value']
 
@@ -1503,8 +1512,8 @@ exports.Assign = class Assign extends Base
       unless varBase.isAssignable()
         @variable.error "\"#{@variable.compile o}\" cannot be assigned"
       unless varBase.hasProperties?()
-        if @param
-          o.scope.add name, 'var'
+        if @param or @icedlocal
+          o.scope.add name, 'var', @icedlocal
         else
           o.scope.find name
     if @value instanceof Code and match = METHOD_DEF.exec name
@@ -1978,7 +1987,11 @@ exports.While = class While extends Base
     answer = [].concat @makeCode(set + @tab + "while ("), @condition.compileToFragments(o, LEVEL_PAREN),
       @makeCode(") {"), body, @makeCode("}")
     if @returns
-      answer.push @makeCode "\n#{@tab}return #{rvar};"
+      if @icedHasAutocbFlag
+        answer.push @makeCode "\n#{@tab}#{iced.const.autocb}(#{rvar});"
+        answer.push @makeCode "\n#{@tab}return;"
+      else
+        answer.push @makeCode "\n#{@tab}return #{rvar};"
     answer
 
   icedWrap : (d) ->
@@ -2754,7 +2767,8 @@ exports.For = class For extends While
         forPartFragments  = [@makeCode("#{declare}; #{compare}; #{kvarAssign}#{increment}")]
     if @returns
       resultPart   = "#{@tab}#{rvar} = [];\n"
-      returnResult = "\n#{@tab}return #{rvar};"
+      returnResult = if @icedHasAutocbFlag then "\n#{@tab}#{iced.const.autocb}(#{rvar}); return;"
+      else "\n#{@tab}return #{rvar};"
       body.makeReturn rvar
     if @guard
       if body.expressions.length > 1

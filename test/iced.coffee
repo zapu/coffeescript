@@ -383,13 +383,6 @@ atest 'nested for .. of .. loops', (cb) ->
       tot++
   cb(tot is 74, {})
 
-atest 'for + return + autocb', (cb) ->
-  bar = (autocb) ->
-    await delay defer()
-    (i for i in [0..10])
-  await bar defer v
-  cb(v[3] is 3, {})
-
 atest 'for + return + autocb (part 2)', (cb) ->
   bar = (autocb) ->
     await delay defer()
@@ -516,3 +509,11 @@ atest "destructuring assignment in defer", (cb) ->
     cb { z : 33 }
   await j defer { z }
   cb(z is 33, {})
+
+atest 'for + return + autocb', (cb) ->
+  bar = (autocb) ->
+    await delay defer()
+    (i for i in [0..10])
+  await bar defer v
+  cb(v[3] is 3, {})
+
