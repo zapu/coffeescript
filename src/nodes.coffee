@@ -940,8 +940,10 @@ exports.Call = class Call extends Base
 
   # The appropriate `this` value for a `super` call.
   superThis : (o) ->
-    method = o.scope.method
-    (method and not method.klass and method.context) or "this"
+    if o.scope.icedgen then "_this"
+    else
+      method = o.scope.method
+      (method and not method.klass and method.context) or "this"
 
   # Soaked chained invocations unfold into if/else ternary structures.
   unfoldSoak: (o) ->
@@ -1634,9 +1636,9 @@ exports.Code = class Code extends Base
     super()
     @params  = params or []
     @body    = body or new Block
-    @bound   = tag is 'boundfunc'
-    @context = '_this' if @bound
     @icedgen = tag is 'icedgen'
+    @bound   = tag is 'boundfunc' or @icedgen
+    @context = '_this' if @bound or @icedgen
     @icedPassedDeferral = null
 
   children: ['params', 'body']
@@ -1652,7 +1654,8 @@ exports.Code = class Code extends Base
   # a closure.
   compileNode: (o) ->
     o.scope         = new Scope o.scope, @body, this
-    o.scope.shared  = del(o, 'sharedScope')
+    o.scope.shared  = del(o, 'sharedScope') or @icedgen
+    o.scope.icedgen = @icedgen
     o.indent        += TAB
     delete o.bare
     delete o.isExistentialEquals
@@ -1689,6 +1692,9 @@ exports.Code = class Code extends Base
     @eachParamName (name, node) ->
       node.error "multiple parameters named '#{name}'" if name in uniqs
       uniqs.push name
+
+    wasEmpty = false if @icedHasAutocbFlag
+
     @body.makeReturn() unless wasEmpty or @noReturn
     if @bound
       if o.scope.parent.method?.bound
@@ -1723,6 +1729,10 @@ exports.Code = class Code extends Base
     super(crossScope, func) if crossScope
  
   icedPatchBody : (o) ->
+
+    # Some iced functions need to squirrel away the original arguments.
+    if @icedFoundArguments and @icedNodeFlag
+      o.scope.assign '_arguments', 'arguments'
 
     if @icedNodeFlag and not @icedgen
       # Find the tamecb if possible, and do this before we update the
