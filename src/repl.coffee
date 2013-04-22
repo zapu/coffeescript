@@ -6,7 +6,7 @@ CoffeeScript = require './coffee-script'
 {merge, prettyErrorMessage} = require './helpers'
 
 replDefaults =
-  prompt: 'coffee> ',
+  prompt: 'iced> ',
   historyFile: path.join(process.env.HOME, '.coffee_history')
   historyMaxInputSize: 10240
   eval: (input, context, filename, cb) ->
