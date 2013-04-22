@@ -200,6 +200,7 @@ runTests = (CoffeeScript) ->
   currentFile = null
   passedTests = 0
   failures    = []
+  attemptedTests = 0
 
   global[name] = func for name, func of require 'assert'
 
@@ -210,6 +211,7 @@ runTests = (CoffeeScript) ->
   # Our test helper function for delimiting different test cases.
   global.test = (description, fn) ->
     try
+      ++attemptedTests
       fn.test = {description, currentFile}
       fn.call(fn)
       ++passedTests
@@ -255,6 +257,7 @@ runTests = (CoffeeScript) ->
   process.on 'exit', ->
     time = ((Date.now() - startTime) / 1000).toFixed(2)
     message = "passed #{passedTests} tests in #{time} seconds#{reset}"
+    log("Only #{passedTests} of #{attemptedTests} came back; some went missing!", red) unless passedTests == attemptedTests
     return log(message, green) unless failures.length
     log "failed #{failures.length} and #{message}", red
     for fail in failures
@@ -273,6 +276,7 @@ runTests = (CoffeeScript) ->
   # Run every test in the `test` folder, recording failures.
   files = fs.readdirSync 'test'
   for file in files when file.match /\.(lit)?coffee$/i
+    console.log "XX #{file}"
     literate = helpers.isLiterate file
     currentFile = filename = path.join 'test', file
     code = fs.readFileSync filename
