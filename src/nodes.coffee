@@ -2712,7 +2712,7 @@ exports.For = class For extends While
     defPart   = ''
     idt1      = @tab + TAB
 
-    return @icedCompileIced(o, { stepvar, body, rvar, kvar, @guard }) if @icedNodeFlag
+    return @icedCompileIced(o, { stepVar, body, rvar, kvar, @guard }) if @icedNodeFlag
 
     if @range
       forPartFragments = source.compileToFragments merge(o, {index: ivar, name, @step})
