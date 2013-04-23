@@ -28,7 +28,7 @@ class MockOutputStream extends Stream
     @written[@written.length - 1 + fromEnd].replace /\n$/, ''
 
 # Create a dummy history file
-historyFile = '.coffee_history_test'
+historyFile = '.iced_history_test'
 fs.writeFileSync historyFile, '1 + 2\n'
 
 testRepl = (desc, fn) ->
@@ -45,7 +45,7 @@ testRepl 'reads history file', (input, output, repl) ->
   eq '3', output.lastWrite()
 
 testRepl "starts with coffee prompt", (input, output) ->
-  eq 'coffee> ', output.lastWrite(0)
+  eq 'iced> ', output.lastWrite(0)
 
 testRepl "writes eval to output", (input, output) ->
   input.emitLine '1+1'
@@ -70,14 +70,14 @@ testRepl "empty command evaluates to undefined", (input, output) ->
 
 testRepl "ctrl-v toggles multiline prompt", (input, output) ->
   input.emit 'keypress', null, ctrlV
-  eq '------> ', output.lastWrite(0)
+  eq '----> ', output.lastWrite(0)
   input.emit 'keypress', null, ctrlV
-  eq 'coffee> ', output.lastWrite(0)
+  eq 'iced> ', output.lastWrite(0)
 
 testRepl "multiline continuation changes prompt", (input, output) ->
   input.emit 'keypress', null, ctrlV
   input.emitLine ''
-  eq '....... ', output.lastWrite(0)
+  eq '..... ', output.lastWrite(0)
 
 testRepl "evaluates multiline", (input, output) ->
   # Stubs. Could assert on their use.

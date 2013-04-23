@@ -9,7 +9,7 @@ iced = icedmod.runtime
 
 replDefaults =
   prompt: 'iced> ',
-  historyFile: path.join(process.env.HOME, '.coffee_history')
+  historyFile: path.join(process.env.HOME, '.iced_history')
   historyMaxInputSize: 10240
   eval: (input, context, filename, cb) ->
     # XXX: multiline hack.
