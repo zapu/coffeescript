@@ -519,6 +519,8 @@ exports.Block = class Block extends Base
           fragments.push @makeCode ",\n#{@tab + TAB}" if declars
           fragments.push @makeCode (scope.assignedVariables().join ",\n#{@tab + TAB}")
         fragments.push @makeCode ";\n#{if @spaced then '\n' else ''}"
+      else if fragments.length and post.length
+        fragments.push @makeCode "\n"
     fragments.concat post
 
   # Wrap up the given nodes as a **Block**, unless it already happens
@@ -908,7 +910,7 @@ exports.Comment = class Comment extends Base
   makeReturn:      THIS
 
   compileNode: (o, level) ->
-    code = '/*' + multident(@comment, @tab) + "\n#{@tab}*/\n"
+    code = "/*#{multident @comment, @tab}#{if '\n' in @comment then "\n#{@tab}" else ''}*/\n"
     code = o.indent + code if (level or o.level) is LEVEL_TOP
     [@makeCode code]
 
@@ -1258,7 +1260,7 @@ exports.Obj = class Obj extends Base
         ',\n'
       indent = if prop instanceof Comment then '' else idt
       if prop instanceof Assign and prop.variable instanceof Value and prop.variable.hasProperties()
-        throw new SyntaxError 'Invalid object key'
+        prop.variable.error 'Invalid object key'
       if prop instanceof Value and prop.this
         prop = new Assign prop.properties[0].name, prop, 'object'
       if prop not instanceof Comment
@@ -2204,8 +2206,9 @@ exports.Op = class Op extends Base
       (shared.compileToFragments o), @makeCode(" #{@operator} "), (@second.compileToFragments o, LEVEL_OP)
     @wrapInBraces fragments
 
+  # Keep reference to the left expression, unless this an existential assignment
   compileExistence: (o) ->
-    if @first.isComplex()
+    if !o.isExistentialEquals and @first.isComplex()
       ref = new Literal o.scope.freeVariable 'ref'
       fst = new Parens new Assign ref, @first
     else
