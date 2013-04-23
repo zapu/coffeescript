@@ -3,7 +3,7 @@
   "description":  "IcedCoffeeScript",
   "keywords":     ["javascript", "language", "coffeescript", "compiler"],
   "author":       "Maxwell Krohn",
-  "version":      "1.6.2a",
+  "version":      "1.6.2b",
   "licenses":     [{
     "type":       "MIT",
     "url":        "https://raw.github.com/maxtaco/coffee-script/master/LICENSE"
@@ -16,8 +16,8 @@
   },
   "main" : "./lib/coffee-script/coffee-script",
   "bin":          {
-    "icoffee":     "./bin/coffee",
-    "icake":       "./bin/cake"
+    "iced":     "./bin/coffee",
+    "icake":    "./bin/cake"
   },
   "scripts": {
     "test": "node ./bin/cake test"
