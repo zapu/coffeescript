@@ -10,7 +10,7 @@ child_process = require 'child_process'
 {Lexer}       = require './lexer'
 {parser}      = require './parser'
 helpers       = require './helpers'
-SourceMap     = require './sourcemap'
+{SourceMap}   = require './sourcemap'
 iced          = require './iced'
 
 # The current CoffeeScript version number.
