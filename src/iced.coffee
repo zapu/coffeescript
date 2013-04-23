@@ -18,8 +18,8 @@ exports.generator = generator = (intern, compiletime, runtime) ->
   # Constants mainly for compile-time behavior, but some shared with the
   # runtime too.
   #
-  compiletime.transform = (x) ->
-    x.icedTransform()
+  compiletime.transform = (x, options) ->
+    x.icedTransform options
 
   compiletime.const = C =
     k : "__iced_k"

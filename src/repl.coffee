@@ -4,6 +4,8 @@ vm = require 'vm'
 nodeREPL = require 'repl'
 CoffeeScript = require './coffee-script'
 {merge, prettyErrorMessage} = require './helpers'
+icedmod = require './iced'
+iced = icedmod.runtime
 
 replDefaults =
   prompt: 'iced> ',
@@ -19,15 +21,27 @@ replDefaults =
     # Require AST nodes to do some AST manipulation.
     {Block, Assign, Value, Literal} = require './nodes'
 
+    # iced runtime in place for iced features....
+    context.iced = iced
+
+    run = (js) -> vm.runInContext(js, context, filename)
+
     try
       # Generate the AST of the clean input.
-      ast = CoffeeScript.nodes input
+      ast = CoffeeScript.nodes input, { repl : true }
       # Add assignment to `_` variable to force the input to be an expression.
-      ast = new Block [
-        new Assign (new Value new Literal '_'), ast, '='
-      ]
+      unless ast.icedIsCpsPivot()
+        ast = new Block [
+          new Assign (new Value new Literal '_'), ast, '='
+        ]
       js = ast.compile bare: yes, locals: Object.keys(context)
-      cb null, vm.runInContext(js, context, filename)
+      if ast.icedIsCpsPivot()
+        await 
+          context[icedmod.const.k] = defer()
+          ret = run js
+      else
+          ret = run js
+        cb null, ret
     catch err
       cb prettyErrorMessage(err, filename, input, yes)
 

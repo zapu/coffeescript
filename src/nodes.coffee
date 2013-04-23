@@ -643,14 +643,16 @@ exports.Block = class Block extends Base
     @expressions.splice index, 0, (new IcedRuntime foundDefer, foundAwait)
 
   # Perform all steps of the Iced transform
-  icedTransform : ->
+  icedTransform : (opts) ->
 
     # we need to do at least 1 walk -- do the most important walk first
     obj = {}
     @icedWalkAst null, obj
 
-    # Add a runtime if necessary
-    @icedAddRuntime obj.foundDefer, obj.foundAwait
+    # Add a runtime if necessary, but don't add a runtime for the REPL.
+    # For some reason, even outputting an empty runtime doesn't work as far as the
+    # REPL is concerned.
+    @icedAddRuntime obj.foundDefer, obj.foundAwait unless opts?.repl
 
     # short-circuit here for optimization. If we didn't find await
     # then no need to iced anything in this AST

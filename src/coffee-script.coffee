@@ -77,9 +77,9 @@ exports.tokens = (code, options) ->
 # or traverse it by using `.traverseChildren()` with a callback.
 exports.nodes = (source, options) ->
   if typeof source is 'string'
-    iced.transform parser.parse lexer.tokenize source, options
+    iced.transform(parser.parse(lexer.tokenize(source, options)), options)
   else
-    iced.transform parser.parse source
+    iced.transform(parser.parse(source),options)
 
 # Compile and execute a string of CoffeeScript (on the server), correctly
 # setting `__filename`, `__dirname`, and relative `require()`.
