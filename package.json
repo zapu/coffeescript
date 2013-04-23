@@ -6,7 +6,7 @@
   "version":      "1.6.2a",
   "licenses":     [{
     "type":       "MIT",
-    "url":        "https://raw.github.com/iced-coffee-script/iced-coffee-script/master/LICENSE"
+    "url":        "https://raw.github.com/maxtaco/coffee-script/master/LICENSE"
   }],
   "engines":      {
     "node":       ">=0.8.0"
@@ -22,11 +22,11 @@
   "scripts": {
     "test": "node ./bin/cake test"
   },
-  "homepage":     "http://iced-coffee-script.github.io/iced-coffee-script",
-  "bugs":         "https://github.com/iced-coffee-script/iced-coffee-script/issues",
+  "homepage":     "http://maxtaco.github.io/coffee-script",
+  "bugs":         "https://github.com/maxtaco/coffee-script/issues",
   "repository":   {
     "type": "git",
-    "url": "git://github.com/iced-coffee-script/iced-coffee-script.git"
+    "url": "git://github.com/maxtaco/coffee-script.git"
   },
   "devDependencies": {
     "uglify-js":  "~2.2",
