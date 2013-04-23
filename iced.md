@@ -377,7 +377,7 @@ file `nodes.coffee`.
 The following do not work and will generate syntax errors at compile time:
 
 ```coffeescript
-x = (await foo defer x)
+y = (await foo defer x)
 ```
 
 ```coffeescript
@@ -394,11 +394,12 @@ my_func 10, (
 )
 ```
 
-That is, you can't treat `await` statements, or any blocks that
-contain `await` statements, as expressions. Previous versions of
+That is, you can't treat `await` statements as expressions.
+And recursively speaking, you can't treat  any blocks that
+contain `await` statements as expressions. Previous versions of
 IcedCoffeeScript supported this arcane feature, but it was extremely
-difficult to implement properly, and also difficult to use correctly.
-
+difficult to implement properly, and unnecessarily obscured the
+control flow of iced programs. 
 
 ## Translation Technique
 
