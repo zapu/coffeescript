@@ -517,3 +517,49 @@ atest 'for + return + autocb', (cb) ->
   await bar defer v
   cb(v[3] is 3, {})
 
+# helper to assert that a string should fail compilation
+cantCompile = (code) ->
+  throws -> CoffeeScript.compile code
+
+atest "await expression assertions 1", (cb) ->
+  cantCompile '''
+    x = if true
+      await foo defer bar
+      bar
+    else
+      10
+'''
+  cantCompile '''
+    foo if true
+      await foo defer bar
+      bar
+    else 10
+'''
+  cantCompile '''
+    if (if true
+      await foo defer bar
+      bar) then 10
+    else 20
+'''
+  cantCompile '''
+    while (
+      await foo defer bar
+      bar
+      )
+      say_ho()
+'''
+  cantCompile '''
+    for i in (
+      await foo defer bar
+      bar)
+      go_nuts()
+'''
+  cantCompile '''
+     switch (
+        await foo defer bar
+        10
+      )
+        when 10 then 11
+        else 20
+'''
+  cb true, {}
