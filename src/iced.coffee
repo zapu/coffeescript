@@ -236,7 +236,7 @@ exports.generator = generator = (intern, compiletime, runtime) ->
     logger err.stack
     stack = stackWalk()
     if stack.length
-      logger "Iced 'stack' trace (w/ real line numbers):"
+      logger "Iced callback trace:"
       logger stack.join "\n"
  
 
