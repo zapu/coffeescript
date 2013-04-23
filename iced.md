@@ -372,52 +372,33 @@ assignment of multiple values at once, accessed as an array.
 These specifics are also detailed in the code in the `Defer` class,
 file `nodes.coffee`.
 
-### Awaits Can work as Expressions
+### Awaits No Longer Work as Expressions
 
-I don't really like this feature, but people have requested it, so
-here goes a trip down the rabbit hole.  It's possible to use `await`
-blocks as expressions. And recursively speaking, it's possible to use
-statements that contain `await` blocks as expressions.
-
-The simple rule is that an `await` block takes on the value of the
-`defer` slot named `_` after its been fulfilled.  If there
-are multiple `defer` slots named `_` within the `await` block, then
-the last writer wins.  In practice, there's usually only one. Thus:
+The following do not work and will generate syntax errors at compile time:
 
 ```coffeescript
-add = (a,b,cb) ->
-  await setTimeout defer(), 10
-  cb(a+b)
-
-x = (await add 3, 4, defer _) + (await add 1, 2, defer _)
-console.log "#{x} == 10"
+x = (await foo defer x)
 ```
-
-Of course, things can get arbitrarily compicated and nested, so it
-gets hairy.  Consider this:
 
 ```coffeescript
-x = await add (await add 1, 2, defer _), (await add 3, 4, defer _), defer _
+x = if true
+  await foo defer y
+  y
+else 10
 ```
 
-The rule is that all nested `await` blocks (barf!) are evaluated
-sequentially in DFS order. You will get `10` in the above example
-after three sequential calls to `add`.
-
-I really don't like this feature for two reasons: (1) it's tricky to
-get the implementation right, and I'm sure I haven't tested all of the
-corner cases yet; (2) it's difficult to read and understand what
-happens in which order.  I would suggest you save yourself the heartache,
-and just write the above as this:
-
-```coffeescript
-await add 1, 2, defer l
-await add 3, 4, defer r
-await add l, r, defer x
+```coffescript
+my_func 10, (
+  await foo defer y
+  y
+)
 ```
 
-It's just so much clearer what happens in which order, and it's easier
-to parallelize or serialize as you see fit.
+That is, you can't treat `await` statements, or any blocks that
+contain `await` statements, as expressions. Previous versions of
+IcedCoffeeScript supported this arcane feature, but it was extremely
+difficult to implement properly, and also difficult to use correctly.
+
 
 ## Translation Technique
 
