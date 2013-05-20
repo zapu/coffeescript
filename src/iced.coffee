@@ -142,10 +142,12 @@ exports.generator = generator = (intern, compiletime, runtime) ->
       else
         runtime.trampoline ( () => @_call trace )
       
-    defer : (args) ->
+    _defer : (args) ->
       @count++
       self = this
       return intern.makeDeferReturn self, args, null, @trace
+
+    defer : (args) -> @_defer args
 
   #### findDeferral
   #
