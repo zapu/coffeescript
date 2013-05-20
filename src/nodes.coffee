@@ -2311,8 +2311,16 @@ exports.Defer = class Defer extends Base
     @slots = flatten (a.icedToSlot i for a,i in args)
     @params = []
     @vars = []
+    @custom = false
 
   children : ['slots' ]
+
+  # Most deferrals are not "custom", meaning they assume
+  # __iced_deferrals as a `this` object.  Rendezvous and others
+  # are custom, since there is an object that's acting as `this`
+  setCustom : () ->
+    @custom = true
+    @
 
   # Count hidden parameters up from 1.  Make a note of which parameter
   # we passed out.  Return a copy of that parameter, in case we mutate
@@ -2396,10 +2404,17 @@ exports.Defer = class Defer extends Base
     call = new Call outer_fn, args
 
   transform : (o) ->
-    # fn is 'Deferrals.defer'
-    fn = new Value new Literal iced.const.deferrals
     meth = new Value new Literal iced.const.defer_method
-    fn.add new Access meth
+
+    # In the custom case, there's a foo.defer, and we're going to 
+    # use the `foo` as the this object.  Otherwise, we'll
+    # use the `__iced_deferrals` in the current scope as the `this` object
+    if @custom
+      fn = meth
+    else
+      fn = new Value new Literal iced.const.deferrals
+      # now, fn is '__iced_deferrals.defer'
+      fn.add new Access meth
 
     # There is one argument to Deferrals.defer(), which is a dictionary.
     # The dictionary currently only has one slot: assign_fn, which
@@ -2414,6 +2429,11 @@ exports.Defer = class Defer extends Base
     ln_rhs = new Value new Literal @lineno
     ln_assign = new Assign ln_lhs, ln_rhs, "object"
     assignments.push ln_assign
+    if @custom
+      context_lhs = new Value new Literal iced.const.context
+      context_rhs = new Value new Literal iced.const.deferrals
+      context_assign = new Assign context_lhs, context_rhs, "object"
+      assignments.push context_assign
     o = new Obj assignments
 
     # Return the final call

@@ -35,6 +35,7 @@ exports.generator = generator = (intern, compiletime, runtime) ->
     c_while : "_continue"
     n_while : "_next"
     n_arg   : "__iced_next_arg"
+    context : "context"
     defer_method : "defer"
     slot : "__slot"
     assign_fn : "assign_fn"
@@ -165,9 +166,6 @@ exports.generator = generator = (intern, compiletime, runtime) ->
       @completed = []
       @waiters = []
       @defer_id = 0
-      # This is a hack to work with the desugaring of
-      # 'defer' output by the coffee compiler.
-      @[C.deferrals] = this
 
     # RvId -- A helper class the allows deferalls to take on an ID
     # when used with Rendezvous
@@ -195,9 +193,7 @@ exports.generator = generator = (intern, compiletime, runtime) ->
     # bit on the deferral.  By default, this bit is off.
     id: (i, multi) ->
       multi = false unless multi?
-      ret = {}
-      ret[C.deferrals] = new RvId(this, i, multi)
-      ret
+      new RvId(this, i, multi)
   
     # Private Interface
   

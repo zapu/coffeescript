@@ -44,7 +44,6 @@ o = (patternString, action, options) ->
   # in, and returns the parameter.  If the parameter is not a node, it will
   # just be passed through unaffected.
   addLocationDataFn = (first, last) ->
-    console.log "addLocationDataFn #{patternString}"
     if not last
       "yy.addLocationDataFn(@#{first})"
     else
@@ -270,7 +269,7 @@ grammar =
   # or by array index or slice.
   Accessor: [
     o '.  Identifier',                          -> new Access $2
-    o '.  Defer',                               -> new Access $2
+    o '.  Defer',                               -> new Access $2.setCustom()
     o '?. Identifier',                          -> new Access $2, 'soak'
     o ':: Identifier',                          -> [LOC(1)(new Access new Literal('prototype')), LOC(2)(new Access $2)]
     o '?:: Identifier',                         -> [LOC(1)(new Access new Literal('prototype'), 'soak'), LOC(2)(new Access $2)]
