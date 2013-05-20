@@ -142,12 +142,15 @@ exports.generator = generator = (intern, compiletime, runtime) ->
       else
         runtime.trampoline ( () => @_call trace )
       
-    _defer : (args) ->
+    defer : (args) ->
       @count++
       self = this
       return intern.makeDeferReturn self, args, null, @trace
 
-    defer : (args) -> @_defer args
+    # As above, but won't get rewritten bythe compiler...
+    # This is in case custom defer implementations want to
+    # access the base implementation.
+    _defer : (args) -> @["defer"] args
 
   #### findDeferral
   #
