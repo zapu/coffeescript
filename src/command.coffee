@@ -347,6 +347,7 @@ compileOptions = (filename, base) ->
     header: opts.compile
     sourceMap: opts.map
     runtime : opts.runtime
+    runforce : opts.runforce
   }
   if filename
     if base

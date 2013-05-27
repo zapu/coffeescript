@@ -14,7 +14,7 @@ helpers       = require './helpers'
 iced          = require './iced'
 
 # The current CoffeeScript version number.
-exports.VERSION = '1.6.2c'
+exports.VERSION = '1.6.2d'
 
 # Expose helpers for testing.
 exports.helpers = helpers
