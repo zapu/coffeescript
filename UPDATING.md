@@ -11,9 +11,11 @@ Here is the current system:
 git remote add upstream git@github.com:jashkenas/coffee-script
 ```
 
-1. Pull from the upstream into our master branch:
+1. Pull from the upstream into our master branch; push to our own origin/master while we are at it.
 ```sh
+git checkout master
 git pull upstream master
+git push origin master
 ```
 
 1. Make sure the local `iced2` branch is up-to-date:
