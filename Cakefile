@@ -90,13 +90,13 @@ task 'build:ultraviolet', 'build and install the Ultraviolet syntax highlighter'
     throw err if err
     exec 'sudo mv coffeescript.yaml /usr/local/lib/ruby/gems/1.8/gems/ultraviolet-0.10.2/syntax/coffeescript.syntax'
 
-
 jsGenLib = (name) ->
   """
-      require['./#{name}'] = new function() {
-        var exports = this;
+      require['./#{name}'] = (function() {
+        var exports = {}, module = { exports : exports };
         #{fs.readFileSync "lib/coffee-script/#{name}.js"}
-      };
+        return module.exports;
+      })();
   """
     
 jsMinify = (code) ->
@@ -262,20 +262,15 @@ runTests = (CoffeeScript) ->
     log "failed #{failures.length} and #{message}", red
     for fail in failures
       {error, filename, description, source}  = fail
-      jsFilename         = filename.replace(/\.coffee$/,'.js')
-      match              = error.stack?.match(new RegExp(fail.file+":(\\d+):(\\d+)"))
-      match              = error.stack?.match(/on line (\d+):/) unless match
-      [match, line, col] = match if match
       console.log ''
       log "  #{description}", red if description
       log "  #{error.stack}", red
-      log "  #{jsFilename}: line #{line ? 'unknown'}, column #{col ? 'unknown'}", red
       console.log "  #{source}" if source
     return
 
   # Run every test in the `test` folder, recording failures.
   files = fs.readdirSync 'test'
-  for file in files when file.match /\.(lit)?coffee$/i
+  for file in files when helpers.isCoffee file
     console.log "XX #{file}"
     literate = helpers.isLiterate file
     currentFile = filename = path.join 'test', file

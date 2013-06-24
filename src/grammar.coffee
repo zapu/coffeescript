@@ -74,7 +74,6 @@ grammar =
   Root: [
     o '',                                       -> new Block
     o 'Body'
-    o 'Block TERMINATOR'
   ]
 
   # Any list of statements and expressions, separated by line breaks or semicolons.
@@ -524,7 +523,7 @@ grammar =
   # ambiguity.
   IfBlock: [
     o 'IF Expression Block',                    -> new If $2, $3, type: $1
-    o 'IfBlock ELSE IF Expression Block',       -> $1.addElse new If $4, $5, type: $3
+    o 'IfBlock ELSE IF Expression Block',       -> $1.addElse LOC(3,5) new If $4, $5, type: $3
   ]
 
   # The full complement of *if* expressions, including postfix one-liner
