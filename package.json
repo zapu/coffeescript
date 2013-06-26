@@ -3,7 +3,7 @@
   "description":  "IcedCoffeeScript",
   "keywords":     ["javascript", "language", "coffeescript", "compiler"],
   "author":       "Maxwell Krohn",
-  "version":      "1.6.3a",
+  "version":      "1.6.3-b",
   "licenses":     [{
     "type":       "MIT",
     "url":        "https://raw.github.com/maxtaco/coffee-script/master/LICENSE"
