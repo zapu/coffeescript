@@ -900,6 +900,11 @@ exports.Value = class Value extends Base
     return new Slot i, this, suffix
 
   icedToSlotAccess : () ->
+    # See bug #78 in the ICS repository. We're concerned about this case:
+    #    await foo defer { @x }
+    # In this situation, `@x` will be represented as a value with the `this`
+    # property set to `true`, and properties[0] will have the name of the
+    # dictionary key that's needed (already as an `Access` instance)
     if @this then @properties[0]
     else new Access @
 
