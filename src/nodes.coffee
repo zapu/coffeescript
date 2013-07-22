@@ -899,6 +899,10 @@ exports.Value = class Value extends Base
       suffix = @properties.pop()
     return new Slot i, this, suffix
 
+  icedToSlotAccess : () ->
+    if @this then @properties[0]
+    else new Access @
+
 #### Comment
 
 # CoffeeScript passes through block comments as JavaScript block comments
@@ -1283,9 +1287,10 @@ exports.Obj = class Obj extends Base
   icedToSlot : (i) ->
     for prop in @properties
       if prop instanceof Assign
-        (prop.value.icedToSlot i).addAccess prop.variable
+        (prop.value.icedToSlot i).addAccess prop.variable.icedToSlotAccess()
       else if prop instanceof Value
-        (prop.icedToSlot i).addAccess prop
+        access = prop.icedToSlotAccess()
+        (prop.icedToSlot i).addAccess access
 
 #### Arr
 
@@ -2377,7 +2382,7 @@ exports.Defer = class Defer extends Base
       else
         a.add new Index i_lit
         if s.access
-          a.add new Access s.access
+          a.add s.access
         if not s.suffix # case 1
           lit = s.value.compile o, LEVEL_TOP
           if lit is "_"

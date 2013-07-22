@@ -465,7 +465,6 @@ atest 'for in by + await', (cb) ->
     res.push i
   cb(res.length is 4 and res[3] is 9, {})
 
-
 atest 'super after await', (cb) ->
   class A
     constructor : ->
@@ -516,6 +515,18 @@ atest 'for + return + autocb', (cb) ->
     (i for i in [0..10])
   await bar defer v
   cb(v[3] is 3, {})
+
+atest 'defer + class member assignments', (cb) ->
+  myfn = (cb) ->
+    await delay defer()
+    cb 3, { y : 4, z : 5}
+  class MyClass2
+    f : (cb) ->
+      await myfn defer @x, { @y , z } 
+      cb z
+  c = new MyClass2()
+  await c.f defer z
+  cb(c.x is 3 and c.y is 4 and z is 5,  {})
 
 # helper to assert that a string should fail compilation
 cantCompile = (code) ->
