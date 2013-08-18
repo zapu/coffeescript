@@ -2487,6 +2487,9 @@ exports.Await = class Await extends Base
 
     if o.filename?
       fn_lhs = new Value new Literal iced.const.filename
+
+      # Replace '\' with '\\' to make the emitted code safe for Windows
+      # paths.  See Issue #84. Thanks to @Deathspike for this patch
       fn_rhs = new Value new Literal '"' + o.filename.replace('\\', '\\\\') + '"'
       fn_assignment = new Assign fn_lhs, fn_rhs, "object"
       assignments.push fn_assignment

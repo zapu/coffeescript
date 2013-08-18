@@ -14,7 +14,7 @@ helpers       = require './helpers'
 iced          = require './iced'
 
 # The current CoffeeScript version number.
-exports.VERSION = '1.6.3-e'
+exports.VERSION = '1.6.3-f'
 
 fileExtensions = ['.coffee', '.litcoffee', '.coffee.md', '.iced']
 
