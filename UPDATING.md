@@ -136,9 +136,9 @@ rake doc                        # give it a shot, and now you're back to where w
 
 There are several hard parts about dealing with this setup.  The first is
 generating the appropriate `coffeescript.yaml` file  from Jeremy's TexMate
-bundle.  That's failed on me and plus we want to make a bunch of ICS additions
-for `await` and `defer`. What I have in the `Cakefile` is my best attempt to
-automate it, but it's likely to break.
+bundle.  That's failed on me before and plus we want to make a bunch of ICS
+additions for `await` and `defer`. What I have in the `Cakefile` is my best
+attempt to automate it, but it's likely to break.
 
 The bigger problem is figuring out where to dump `coffeescript.yaml` (or
 better yet the `ics.yaml` that I make from it) when it's ready to go. This
