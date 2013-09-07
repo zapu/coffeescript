@@ -130,7 +130,7 @@ ruby, it's going to be a bit different on MacOS X:
 npm install -g docco            # jashkenas write docco as a node module, this is easy enough
 sudo apt-get install libonig2   # the ruby stuff needs this as an external lib dependency
 sudo gem install ultraviolet    # this installs some dependencies, etc
-icake build:ultraviolet         # this is likely to fail do to hardcoded paths and hacks
+icake build:ultraviolet         # this is likely to fail due to hardcoded paths and hacks
 rake doc                        # give it a shot, and now you're back to where we were above
 ```
 
