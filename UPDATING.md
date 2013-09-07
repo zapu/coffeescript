@@ -117,6 +117,12 @@ git push origin gh-pages
 1. Test that the `run` button still works on the front page, and that the
 sandbox is still operational.
 
+## How Do I Build Docs for the first time on a machine?
+
+You are **fucked**!  But here is an attempt to guide you:
+
+1. First of all, there's the original reference from CoffeeScript, which isn't great, but it's worth a look.  Find it [here](https://github.com/jashkenas/coffee-script/wiki/%5BHowto%5D-Hacking-on-the-CoffeeScript-Compiler)
+
 #### To Accept Their Changes
 
 I wrote a little shell script called `theirs`:
