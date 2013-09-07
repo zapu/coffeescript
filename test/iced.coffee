@@ -502,6 +502,19 @@ atest 'for + ...', (cb) ->
     inc()
   cb(x is 10, {})
 
+atest 'negative strides (Issue #86 via @davidbau)', (cb) ->
+  last_1 = last_2 = -1
+  tot_1 = tot_2 = 0
+  for i in [4..1]
+    await delay defer(), 0
+    last_1 = i
+    tot_1 += i
+  for i in [4...1]
+    await delay defer(), 0
+    last_2 = i
+    tot_2 += i
+  cb ((last_1 is 1) and (tot_1 is 10) and (last_2 is 2) and (tot_2 is 9)), {}
+
 atest "destructuring assignment in defer", (cb) ->
   j = (cb) ->
     await delay defer(), 0

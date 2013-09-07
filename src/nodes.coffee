@@ -2910,15 +2910,19 @@ exports.For = class For extends While
       a4 = new Assign @index, keys_access
       pre_body.unshift a4
 
-    # Handle the case of 'for i in [0..10]'
     else if @range and @name
-      rop = if @source.base.exclusive then '<' else '<='
+      # Handle the case of 'for i in [0..10]'
+      # Be careful to handle *negative* stride, see
+      # Issue #86 as reported by @davidbau
+      pos = @source.base.from <= @source.base.to
+      rop = if @source.base.exclusive then (if pos then '<'  else '>')
+      else (if pos then '<=' else '>=')
       condition = new Op rop, @name, @source.base.to
       init = [ new Assign @name, @source.base.from ]
       if @step?
-        step = new Op "+=", @name, @step
+        step = new Op (if pos then "+=" else "-="), @name, @step
       else
-        step = new Op '++', @name
+        step = new Op (if pos then '++' else "--"), @name
 
     # Handle the case of 'for i,blah in arr'
     else if ! @range and @name
