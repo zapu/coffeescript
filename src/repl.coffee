@@ -3,7 +3,7 @@ path = require 'path'
 vm = require 'vm'
 nodeREPL = require 'repl'
 CoffeeScript = require './coffee-script'
-{merge, prettyErrorMessage} = require './helpers'
+{merge, prettyErrorMessage,updateSyntaxError} = require './helpers'
 icedmod = require './iced'
 iced = icedmod.runtime
 
@@ -24,7 +24,11 @@ replDefaults =
     # iced runtime in place for iced features....
     context.iced = iced
 
-    run = (js) -> vm.runInContext(js, context, filename)
+    run = (js) -> 
+      if context is global 
+        vm.runInContext(js, filename)
+      else
+        vm.runInContext(js, context, filename)
 
     try
       # Generate the AST of the clean input.
@@ -40,10 +44,12 @@ replDefaults =
           context[icedmod.const.k] = defer()
           ret = run js
       else
-          ret = run js
-        cb null, ret
+        ret = run js
+      cb null, ret
     catch err
-      cb prettyErrorMessage(err, filename, input, yes)
+      # AST's `compile` does not add source code information to syntax errors.
+      updateSyntaxError err, input
+      cb err
 
 addMultilineHandler = (repl) ->
   {rli, inputStream, outputStream} = repl
@@ -139,6 +145,8 @@ module.exports =
       console.warn "Node 0.8.0+ required for CoffeeScript REPL"
       process.exit 1
 
+    require './extensions'
+    process.argv = ['coffee'].concat process.argv[2..]
     opts = merge replDefaults, opts
     repl = nodeREPL.start opts
     repl.on 'exit', -> repl.outputStream.write '\n'

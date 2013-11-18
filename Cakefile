@@ -196,6 +196,7 @@ task 'bench', 'quick benchmark of compilation time', ->
 
 # Run the CoffeeScript test suite.
 runTests = (CoffeeScript) ->
+  require './lib/coffee-script/extensions'
   startTime   = Date.now()
   currentFile = null
   passedTests = 0

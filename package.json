@@ -2,12 +2,9 @@
   "name":         "iced-coffee-script",
   "description":  "IcedCoffeeScript",
   "keywords":     ["javascript", "language", "coffeescript", "compiler"],
-  "author":       "Maxwell Krohn",
-  "version":      "1.6.3-g",
-  "licenses":     [{
-    "type":       "MIT",
-    "url":        "https://raw.github.com/maxtaco/coffee-script/master/LICENSE"
-  }],
+  "author":       "Jeremy Ashkenas + Maxwell Krohn",
+  "version":      "1.6.3-h",
+  "license":      "MIT",
   "engines":      {
     "node":       ">=0.8.0"
   },
@@ -31,5 +28,8 @@
   "devDependencies": {
     "uglify-js":  "~2.2",
     "jison":      ">=0.2.0"
+  },
+  "dependencies": {
+    "mkdirp": "~0.3.5"
   }
 }
