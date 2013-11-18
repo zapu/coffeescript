@@ -230,6 +230,7 @@ exports.Base = class Base
   icedCompileCps : (o) ->
     @icedGotCpsSplitFlag = true
     code = CpsCascade.wrap this, @icedContinuationBlock, null, o
+    o.sharedScope = true
     code.compileNode o
 
   # If the code generation wishes to use the result of a complex expression
