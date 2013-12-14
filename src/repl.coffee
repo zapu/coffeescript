@@ -23,10 +23,11 @@ replDefaults =
 
     # iced runtime in place for iced features....
     context.iced = iced
+    context[icedmod.const.k_noop] = () ->
 
     run = (js) -> 
       if context is global 
-        vm.runInContext(js, filename)
+        vm.runInThisContext(js, filename)
       else
         vm.runInContext(js, context, filename)
 
