@@ -2,13 +2,8 @@
   "name":         "iced-coffee-script",
   "description":  "IcedCoffeeScript",
   "keywords":     ["javascript", "language", "coffeescript", "compiler"],
-<<<<<<< HEAD
   "author":       "Jeremy Ashkenas + Maxwell Krohn",
-  "version":      "1.6.3-h",
-=======
-  "author":       "Jeremy Ashkenas",
-  "version":      "1.6.3",
->>>>>>> master
+  "version":      "1.6.3-i",
   "license":      "MIT",
   "engines":      {
     "node":       ">=0.8.0"
