@@ -45,7 +45,7 @@ exports.compile = compile = withPrettyErrors (code, options) ->
   if options.sourceMap
     map = new SourceMap
 
-  fragments = (iced.transform(parser.parse(lexer.tokenize code, options))).compileToFragments options
+  fragments = (iced.transform(parser.parse(lexer.tokenize code, options), options)).compileToFragments options
 
   currentLine = 0
   currentLine += 1 if options.header
