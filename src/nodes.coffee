@@ -2953,7 +2953,10 @@ exports.For = class For extends While
     else if @range and @name
       # Handle the case of 'for i in [0..10]'
       # Be careful to handle *negative* stride, see
-      # Issue #86 as reported by @davidbau
+      # - Issue #86 as reported by @davidbau
+      # - Issue #97 as reported by @joshuas
+      # - Issue #99 as fixed by @davidbond
+
       # Create variables
       begin = new Value new Literal "_begin"
       end = new Value new Literal "_end"
@@ -2963,14 +2966,10 @@ exports.For = class For extends While
       step = new If positive, new Op("+=", @name, stepVal)
       step.addElse new Op("-=", @name, stepVal)
       # Calculate break condition
-      if @source.base.exclusive
-        pos = new Op "&&", new Op("===", positive, new Literal true), new Op(">=", @name, @source.base.to)
-        neg = new Op "&&", new Op("===", positive, new Literal false), new Op("<=", @name, @source.base.to)
-        condition = new Op "||", new Parens(pos), new Parens(neg)
-      else
-        pos = new Op "&&", new Op("===", positive, new Literal true), new Op(">", @name, @source.base.to)
-        neg = new Op "&&", new Op("===", positive, new Literal false), new Op("<", @name, @source.base.to)
-        condition = new Op "||", new Parens(pos), new Parens(neg)
+      excl = if @source.base.exclusive then "=" else ''
+      pos = new Op "&&", new Op("===", positive, new Literal true), new Op(">#{excl}", @name, @source.base.to)
+      neg = new Op "&&", new Op("===", positive, new Literal false), new Op("<#{excl}", @name, @source.base.to)
+      condition = new Op "||", new Parens(pos), new Parens(neg)
       condition = condition.invert()
       # Init statements
       init = [ 
