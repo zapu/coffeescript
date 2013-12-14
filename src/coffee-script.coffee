@@ -13,7 +13,7 @@ helpers       = require './helpers'
 iced          = require './iced'
 
 # The current CoffeeScript version number.
-exports.VERSION = '1.6.3-g'
+exports.VERSION = '1.6.3-i'
 
 exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced']
 
@@ -156,6 +156,8 @@ exports.eval = (code, options = {}) ->
     vm.runInThisContext js
   else
     vm.runInContext js, sandbox
+
+exports.register = -> require './register'
 
 exports._compileFile = (filename, sourceMap = no) ->
   raw = fs.readFileSync filename, 'utf8'

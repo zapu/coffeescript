@@ -1,5 +1,5 @@
 /**
- * IcedCoffeeScript Compiler v1.6.3-g
+ * IcedCoffeeScript Compiler v1.6.3-i
  * http://iced-coffee-script.github.io/iced-coffee-script
  *
  * Copyright 2011, Jeremy Ashkenas, Maxwell Krohn

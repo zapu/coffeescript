@@ -3,7 +3,7 @@ path = require 'path'
 vm = require 'vm'
 nodeREPL = require 'repl'
 CoffeeScript = require './coffee-script'
-{merge, prettyErrorMessage,updateSyntaxError} = require './helpers'
+{merge,updateSyntaxError} = require './helpers'
 icedmod = require './iced'
 iced = icedmod.runtime
 
@@ -145,7 +145,7 @@ module.exports =
       console.warn "Node 0.8.0+ required for CoffeeScript REPL"
       process.exit 1
 
-    require './extensions'
+    CoffeeScript.register()
     process.argv = ['coffee'].concat process.argv[2..]
     opts = merge replDefaults, opts
     repl = nodeREPL.start opts
