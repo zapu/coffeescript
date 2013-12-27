@@ -667,7 +667,7 @@ exports.Block = class Block extends Base
     # Add a runtime if necessary, but don't add a runtime for the REPL.
     # For some reason, even outputting an empty runtime doesn't work as far as the
     # REPL is concerned.
-    if not opts?.repl and (obj.foundDefer or obj.foundAwait) and not(opts.runforce)
+    if not opts?.repl and (obj.foundDefer or obj.foundAwait or opts.runforce)
       @icedAddRuntime obj.foundDefer, obj.foundAwait
 
     # short-circuit here for optimization. If we didn't find await
