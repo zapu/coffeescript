@@ -1,15 +1,21 @@
 {
   "name":         "iced-coffee-script",
   "description":  "IcedCoffeeScript",
-  "keywords":     ["javascript", "language", "coffeescript", "compiler"],
   "author":       "Jeremy Ashkenas + Maxwell Krohn",
-  "version":      "1.6.3-j",
-  "license":      "MIT",
-  "engines":      {
-    "node":       ">=0.8.0"
+  "version":      "1.7.0-a",
+  "keywords": [
+    "javascript",
+    "language",
+    "coffeescript",
+    "compiler"
+  ],
+  "author": "Jeremy Ashkenas + Maxwell Krohn",
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.8.0"
   },
-  "directories" : {
-    "lib" : "./lib/coffee-script"
+  "directories": {
+    "lib": "./lib/coffee-script"
   },
   "main" : "./lib/coffee-script/coffee-script",
   "bin":          {
@@ -26,8 +32,10 @@
     "url": "git://github.com/maxtaco/coffee-script.git"
   },
   "devDependencies": {
-    "uglify-js":  "~2.2",
-    "jison":      ">=0.2.0"
+    "uglify-js": "~2.2",
+    "jison": ">=0.2.0",
+    "highlight.js": "~8.0.0",
+    "underscore": "~1.5.2"
   },
   "dependencies": {
     "mkdirp": "~0.3.5"

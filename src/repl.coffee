@@ -41,9 +41,10 @@ replDefaults =
         ]
       js = ast.compile bare: yes, locals: Object.keys(context)
       if ast.icedIsCpsPivot()
-        await 
-          context[icedmod.const.k] = defer()
-          ret = run js
+        ret = null
+        context[icedmod.const.k] = () -> cb null, ret
+        ret = run js
+        return
       else
         ret = run js
       cb null, ret
