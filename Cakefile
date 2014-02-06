@@ -192,12 +192,12 @@ task 'doc:site', 'watch and continually rebuild the documentation for the websit
   log "watching..." , green
 
 task 'doc:source', 'rebuild the internal documentation', ->
-  exec 'docco src/*.*coffee && cp -rf docs documentation && rm -r docs', (err) ->
+  exec 'node_modules/.bin/docco src/*.*coffee && cp -rf docs documentation && rm -r docs', (err) ->
     throw err if err
 
 
 task 'doc:underscore', 'rebuild the Underscore.coffee documentation page', ->
-  exec 'docco examples/underscore.coffee && cp -rf docs documentation && rm -r docs', (err) ->
+  exec 'node_modules/.bin/docco examples/underscore.coffee && cp -rf docs documentation && rm -r docs', (err) ->
     throw err if err
 
 task 'bench', 'quick benchmark of compilation time', ->

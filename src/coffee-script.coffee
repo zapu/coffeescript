@@ -13,7 +13,7 @@ helpers       = require './helpers'
 iced          = require './iced'
 
 # The current CoffeeScript version number.
-exports.VERSION = '1.7.0-a'
+exports.VERSION = '1.7.1-a'
 
 exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced']
 
@@ -108,7 +108,7 @@ exports.run = (code, options = {}) ->
   mainModule.moduleCache and= {}
 
   # Assign paths for node_modules loading
-  dir = if options.fileName
+  dir = if options.filename
     path.dirname fs.realpathSync options.filename
   else
     fs.realpathSync '.'
