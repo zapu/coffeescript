@@ -562,6 +562,17 @@ atest "negative strides with expression", (cb) ->
     last2 = i
   cb ((total1 is 15) and (last1 is 1) and (total2 is 20) and (last2 is 2)), {}
 
+atest "loop without looping variable", (cb) ->
+  count = 6
+  total1 = 0
+  for [1..count]
+    await delay defer(), 0
+    total1 += 1
+  total2 = 0
+  for i in [count..1]
+    await delay defer(), 0
+    total2 += 1
+  cb ((total1 is 6) and (total2 is 6)), {}
 
 atest "destructuring assignment in defer", (cb) ->
   j = (cb) ->

@@ -3000,7 +3000,13 @@ exports.For = class For extends While
       a4 = new Assign @index, keys_access
       pre_body.unshift a4
 
-    else if @range and @name
+    else if @range
+      if not @name
+        # Handle the case of 'for [1..5]' (without a looping variable).
+        # - Issue #98 as reported by @davidbau
+        # If the user didn't give a looping variable, use the made-up one.
+        @name = new Literal d.kvar
+
       # Handle the case of 'for i in [0..10]'
       # Be careful to handle *negative* stride, see
       # - Issue #86 as reported by @davidbau
