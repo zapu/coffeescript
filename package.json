@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "mkdirp": "~0.3.5",
-    "docco": "~0.6.2"
+    "docco": "~0.6.2",
+    "iced-runtime" : "*"
   }
 }

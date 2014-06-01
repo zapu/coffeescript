@@ -4,8 +4,7 @@ vm = require 'vm'
 nodeREPL = require 'repl'
 CoffeeScript = require './coffee-script'
 {merge,updateSyntaxError} = require './helpers'
-icedmod = require './iced'
-iced = icedmod.runtime
+iced = require 'iced-runtime'
 
 replDefaults =
   prompt: 'iced> ',
@@ -23,7 +22,7 @@ replDefaults =
 
     # iced runtime in place for iced features....
     context.iced = iced
-    context[icedmod.const.k_noop] = () ->
+    context[iced.const.k_noop] = () ->
 
     run = (js) -> 
       if context is global 
@@ -42,7 +41,7 @@ replDefaults =
       js = ast.compile bare: yes, locals: Object.keys(context)
       if ast.icedIsCpsPivot()
         ret = null
-        context[icedmod.const.k] = () -> cb null, ret
+        context[iced.const.k] = () -> cb null, ret
         ret = run js
         return
       else

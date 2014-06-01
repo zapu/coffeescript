@@ -3,14 +3,15 @@
 # contains the main entry functions for tokenizing, parsing, and compiling
 # source CoffeeScript into JavaScript.
 
-fs            = require 'fs'
-vm            = require 'vm'
-path          = require 'path'
-{Lexer}       = require './lexer'
-{parser}      = require './parser'
-helpers       = require './helpers'
-{SourceMap}   = require './sourcemap'
-iced          = require './iced'
+fs             = require 'fs'
+vm             = require 'vm'
+path           = require 'path'
+{Lexer}        = require './lexer'
+{parser}       = require './parser'
+helpers        = require './helpers'
+{SourceMap}    = require './sourcemap'
+iced_transform = require('./iced').transform
+iced_runtime   = require 'iced-runtime'
 
 # The current CoffeeScript version number.
 exports.VERSION = '1.7.1-b'
@@ -45,7 +46,7 @@ exports.compile = compile = withPrettyErrors (code, options) ->
   if options.sourceMap
     map = new SourceMap
 
-  fragments = (iced.transform(parser.parse(lexer.tokenize code, options), options)).compileToFragments options
+  fragments = (iced_transform(parser.parse(lexer.tokenize code, options), options)).compileToFragments options
 
   currentLine = 0
   currentLine += 1 if options.header
@@ -91,9 +92,9 @@ exports.tokens = withPrettyErrors (code, options) ->
 # or traverse it by using `.traverseChildren()` with a callback.
 exports.nodes = withPrettyErrors (source, options) ->
   if typeof source is 'string'
-    iced.transform(parser.parse(lexer.tokenize(source, options)), options)
+    iced_transform(parser.parse(lexer.tokenize(source, options)), options)
   else
-    iced.transform(parser.parse(source),options)
+    iced_transform(parser.parse(source),options)
 
 # Compile and execute a string of CoffeeScript (on the server), correctly
 # setting `__filename`, `__dirname`, and relative `require()`.
@@ -198,7 +199,7 @@ parser.lexer =
 parser.yy = require './nodes'
 
 # Export the iced runtime as 'iced'
-exports.iced = iced.runtime
+exports.iced = iced_runtime
 
 # Override Jison's default error handling function.
 parser.yy.parseError = (message, {token}) ->
