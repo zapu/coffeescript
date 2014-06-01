@@ -1,2 +1,2 @@
 
-exports.transform = x.icedTransform options
+exports.transform = (x, options) -> x.icedTransform options

@@ -8,7 +8,7 @@ with external scopes.
 Import the helpers we plan to use.
 
     {extend, last} = require './helpers'
-    iced = require './iced'
+    iced = require 'iced-runtime'
 
     exports.Scope = class Scope
 

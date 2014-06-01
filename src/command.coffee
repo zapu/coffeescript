@@ -13,7 +13,7 @@ CoffeeScript   = require './coffee-script'
 mkdirp         = require 'mkdirp'
 {spawn, exec}  = require 'child_process'
 {EventEmitter} = require 'events'
-iced           = require './iced'
+iced           = require 'iced-runtime'
 
 runtime_modes_str = "{" + (iced.const.runtime_modes.join ", ") + "}"
 
