@@ -692,6 +692,7 @@ exports.Block = class Block extends Base
 # `true`, `false`, `null`...
 exports.Literal = class Literal extends Base
   constructor: (@value) ->
+    if not @value? then throw new Error "whoops!"
     super()
 
   makeReturn: ->

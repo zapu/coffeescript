@@ -109,71 +109,24 @@ task 'build:parser', 'rebuild the Jison parser (run build first)', ->
   fs.writeFile 'lib/coffee-script/parser.js', parser.generate()
 
 
-jsGenLib = (name) ->
-  """
-      require['./#{name}'] = (function() {
-        var exports = {}, module = { exports : exports };
-        #{fs.readFileSync "lib/coffee-script/#{name}.js"}
-        return module.exports;
-      })();
-  """
-    
 jsMinify = (code) ->
   unless process.env.MINIFY is 'false'
     {code} = require('uglify-js').minify code, fromString: true
   code
 
-jsWrapCode = (code, klass, req, assigns) -> 
-  p = []
-  p.push """
-    (function(root) {
-      var #{klass} = function() {
-        function require(path){ return require[path]; }
-        #{code}
-        return require['./#{req}'];
-      }();
-      if (typeof define === 'function' && define.amd) {"""
-        
-  for x in assigns
-    p.push "      define(function() { return #{x[1]}; });"
-  
-  p.push """    } else {    """
-
-  for x in assigns
-    p.push "      root.#{x[0]} = #{x[1]};"
-  
-  p.push "    }"
-  p.push " }(this));"
-  
-  p.join '\n'
-  
+pipe_to_buf = (pipe, cb) -> 
+  bufs = []
+  pipe.on 'data', (b) -> bufs.push b
+  pipe.on 'end', () -> cb Buffer.concat(bufs).toString('utf8')
  
 task 'build:browser', 'rebuild the merged script for inclusion in the browser', ->
-  code = ''
-  for name in ['helpers', 'rewriter', 'lexer', 'parser', 'iced', 'scope', 'nodes', 'sourcemap', 'coffee-script', 'browser', ]
-    code += jsGenLib name
+  browserify = require 'browserify'
+  b = browserify()
+  b.add "./lib/coffee-script/browser.js"
+  await pipe_to_buf b.bundle(), defer code
 
-  code = jsWrapCode code, "CoffeeScript", "coffee-script", [
-    [ 'CoffeeScript' , 'CoffeeScript' ],
-    [ 'iced', 'CoffeeScript.iced' ]
-  ]
   code = jsMinify code
   fs.writeFileSync 'extras/coffee-script.js', header + '\n' + code
-
-  code = jsGenLib 'iced'
-  code = jsWrapCode code, 'Iced', 'iced', [
-    [ 'iced', 'Iced.runtime' ]
-  ]
-  code = jsMinify code
-  fs.writeFileSync 'extras/coffee-script-iced.js', header + '\n' + code
-
-  code = (jsGenLib 'iced') + (jsGenLib 'icedlib')
-  code = jsWrapCode code, 'Icedlib', 'icedlib', [
-    [ 'icedlib', 'Icedlib' ],
-    [ 'iced', 'Icedlib.iced' ]
-  ]
-  code = jsMinify code
-  fs.writeFileSync 'extras/coffee-script-iced-large.js', header + '\n' + code
 
   console.log "built ... running browser tests:"
   invoke 'test:browser'

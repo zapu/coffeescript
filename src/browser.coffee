@@ -87,3 +87,6 @@ if window.addEventListener
   window.addEventListener 'DOMContentLoaded', runScripts, no
 else
   window.attachEvent 'onload', runScripts
+
+exports.CoffeeScript = window.CoffeeScript = CoffeeScript
+window.iced = CoffeeScript.iced
