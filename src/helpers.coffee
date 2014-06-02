@@ -175,7 +175,7 @@ syntaxErrorToString = ->
   marker   = repeat(' ', start) + repeat('^', end - start)
 
   # Check to see if we're running on a color-enabled TTY.
-  if process?
+  if process?.stdout?
     colorsEnabled = process.stdout.isTTY and not process.env.NODE_DISABLE_COLORS
 
   if @colorful ? colorsEnabled

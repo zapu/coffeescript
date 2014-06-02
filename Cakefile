@@ -123,9 +123,9 @@ task 'build:browser', 'rebuild the merged script for inclusion in the browser', 
   browserify = require 'browserify'
   b = browserify()
   b.add "./lib/coffee-script/browser.js"
-  await b.bundle { standalone : 'IcedCoffeeScript' }, defer err, code
+  await b.bundle { standalone : 'CoffeeScript' }, defer err, code
   console.error err if err?
-  code = "(function(root){\n" + code + "\n})(this);"
+  code = "(function(root){\n" + code + "\nroot.CoffeeScript = CoffeeScript;\n})(this);"
 
   code = jsMinify code
   fs.writeFileSync 'extras/coffee-script.js', header + '\n' + code
