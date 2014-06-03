@@ -108,17 +108,6 @@ task 'build:parser', 'rebuild the Jison parser (run build first)', ->
   parser = require('./lib/coffee-script/grammar').parser
   fs.writeFile 'lib/coffee-script/parser.js', parser.generate()
 
-
-jsMinify = (code) ->
-  unless process.env.MINIFY is 'false'
-    {code} = require('uglify-js').minify code, fromString: true
-  code
-
-pipe_to_buf = (pipe, cb) -> 
-  bufs = []
-  pipe.on 'data', (b) -> bufs.push b
-  pipe.on 'end', () -> cb Buffer.concat(bufs).toString('utf8')
- 
 task 'build:browser', 'rebuild the merged script for inclusion in the browser', ->
   browserify = require 'browserify'
   b = browserify()
@@ -127,8 +116,10 @@ task 'build:browser', 'rebuild the merged script for inclusion in the browser', 
   console.error err if err?
   code = "(function(root){\n" + code + "\nroot.CoffeeScript = CoffeeScript;\n})(this);"
 
-  code = jsMinify code
   fs.writeFileSync 'extras/coffee-script.js', header + '\n' + code
+  unless process.env.MINIFY is 'false'
+    {code} = require('uglify-js').minify code, fromString: true
+    fs.writeFileSync 'extras/coffee-script-min.js', header + '\n' + code
 
   console.log "built ... running browser tests:"
   invoke 'test:browser'
