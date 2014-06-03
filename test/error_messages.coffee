@@ -42,7 +42,7 @@ test "compiler error formatting", ->
   '''
 
 
-if require?
+unless global.testingBrowser
   fs   = require 'fs'
   path = require 'path'
 

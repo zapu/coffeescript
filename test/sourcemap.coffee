@@ -1,3 +1,4 @@
+
 return if global.testingBrowser
 
 {SourceMap} = require '../src/sourcemap'
