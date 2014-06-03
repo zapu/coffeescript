@@ -1,15 +1,14 @@
 {
-  "name":         "iced-coffee-script",
-  "description":  "IcedCoffeeScript",
-  "author":       "Jeremy Ashkenas + Maxwell Krohn",
-  "version":      "1.7.1-b",
+  "name": "iced-coffee-script",
+  "description": "IcedCoffeeScript",
+  "author": "Jeremy Ashkenas + Maxwell Krohn",
+  "version": "1.7.1-b",
   "keywords": [
     "javascript",
     "language",
     "coffeescript",
     "compiler"
   ],
-  "author": "Jeremy Ashkenas + Maxwell Krohn",
   "license": "MIT",
   "engines": {
     "node": ">=0.8.0"
@@ -17,17 +16,17 @@
   "directories": {
     "lib": "./lib/coffee-script"
   },
-  "main" : "./lib/coffee-script/coffee-script",
-  "bin":          {
-    "iced":     "./bin/coffee",
-    "icake":    "./bin/cake"
+  "main": "./lib/coffee-script/coffee-script",
+  "bin": {
+    "iced": "./bin/coffee",
+    "icake": "./bin/cake"
   },
   "scripts": {
     "test": "node ./bin/cake test"
   },
-  "homepage":     "http://maxtaco.github.io/coffee-script",
-  "bugs":         "https://github.com/maxtaco/coffee-script/issues",
-  "repository":   {
+  "homepage": "http://maxtaco.github.io/coffee-script",
+  "bugs": "https://github.com/maxtaco/coffee-script/issues",
+  "repository": {
     "type": "git",
     "url": "git://github.com/maxtaco/coffee-script.git"
   },
@@ -36,11 +35,12 @@
     "jison": ">=0.2.0",
     "highlight.js": "~8.0.0",
     "underscore": "~1.5.2",
-    "docco": "0.6.x"
+    "docco": "0.6.x",
+    "browserify": "^4.1.8"
   },
   "dependencies": {
-    "mkdirp": "~0.3.5",
     "docco": "~0.6.2",
-    "iced-runtime" : "*"
+    "iced-runtime": "*",
+    "mkdirp": "~0.3.5"
   }
 }
