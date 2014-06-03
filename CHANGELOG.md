@@ -5,6 +5,9 @@ Features:
 
   - Factor out runtime, which is now available via `iced-runtime`
   - Build the browser package via browserify, not via ad-hoc mechanism
+  - Build both coffee-script.js and coffee-script-min.js
+  - Remove other build packages, since now the main library is sucked in with
+    browserify.
 
 Warnings:
 
