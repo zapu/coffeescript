@@ -108,6 +108,11 @@ task 'build:parser', 'rebuild the Jison parser (run build first)', ->
   parser = require('./lib/coffee-script/grammar').parser
   fs.writeFile 'lib/coffee-script/parser.js', parser.generate()
 
+outFileName = (min) ->
+  {version} = require('./package.json')
+  fn = "iced-coffee-script-#{version}#{if min then '-min' else ''}.js"
+  path.join "extras", fn 
+
 task 'build:browser', 'rebuild the merged script for inclusion in the browser', ->
   browserify = require 'browserify'
   b = browserify()
@@ -116,10 +121,10 @@ task 'build:browser', 'rebuild the merged script for inclusion in the browser', 
   console.error err if err?
   code = "(function(root){\n" + code + "\nroot.CoffeeScript = CoffeeScript;\n})(this);"
 
-  fs.writeFileSync 'extras/coffee-script.js', header + '\n' + code
+  fs.writeFileSync outFileName(false), header + '\n' + code
   unless process.env.MINIFY is 'false'
     {code} = require('uglify-js').minify code, fromString: true
-    fs.writeFileSync 'extras/coffee-script-min.js', header + '\n' + code
+    fs.writeFileSync outFileName(true), header + '\n' + code
 
   console.log "built ... running browser tests:"
   invoke 'test:browser'
@@ -261,7 +266,7 @@ task 'test', 'run the CoffeeScript language test suite', ->
   runTests CoffeeScript
 
 task 'test:browser', 'run the test suite against the merged browser script', ->
-  source = fs.readFileSync 'extras/coffee-script.js', 'utf-8'
+  source = fs.readFileSync outFileName(true), 'utf-8'
   result = {}
   global.testingBrowser = yes
   (-> eval source).call result
