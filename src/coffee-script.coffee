@@ -14,7 +14,7 @@ iced_transform = require('./iced').transform
 iced_runtime   = require 'iced-runtime'
 
 # The current CoffeeScript version number.
-exports.VERSION = '1.7.1-b'
+exports.VERSION = '1.7.1-c'
 
 exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced']
 
