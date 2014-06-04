@@ -2662,11 +2662,9 @@ class IcedRuntime extends Block
         modname = "iced-runtime"
         accessname = iced.const.ns
         file = new Literal "'#{modname}'"
-        access = new Access new Literal accessname
         req = new Value new Literal "require"
         call = new Call req, [ file ]
         callv = new Value call
-        callv.add access
         ns = new Value new Literal iced.const.ns
         new Assign ns, callv
       when "none" then null
