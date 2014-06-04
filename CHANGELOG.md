@@ -1,3 +1,11 @@
+## v1.7.1-d 
+
+Tweaks:
+
+  - Try this: `iced = require('iced-runtime')`, as opposed to: 
+    `iced = require('iced-runtime').iced;`.  This puts the runtime
+    and the library features at the same level. This is more natural
+    I think...
 
 ## v1.7.1-c (2014-06-03)
 
