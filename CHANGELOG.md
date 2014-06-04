@@ -1,5 +1,11 @@
 ## v1.7.1-d 
 
+Bugfixes:
+
+  - Close #121: allow `iced foo.iced` from anywhere, even if you don't have 
+    `iced-runtime` installed globally or locally -- just make a run mode that
+    looks for it internalls to the compiler/interpreter.
+
 Tweaks:
 
   - Try this: `iced = require('iced-runtime')`, as opposed to: 
