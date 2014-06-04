@@ -4,13 +4,13 @@
 Version: GnuPG/MacGPG2 v2.0.22 (Darwin)
 Comment: GPGTools - https://gpgtools.org
 
-iQEcBAABCgAGBQJTjd9+AAoJEJgKPw0B/gTfa3kH/1PWObUhPi/gEFPREBS4von5
-lvAK55hkafDnhn357nvK+KYoSCTfsNClS8VhRtPlt9NFaFaSKm/1RXBvsMlFpTfQ
-8H5fU7GcLWRr9dXjXRmjGKnNNccw/TFD5r8lJnv5dkLg6ngTCjBDxD9ZwuII/91O
-sCGuHnKEmqbP8VTQTinteMyYmLL0pU4dMytkyggwZFezl70O9PhsPdwSWI3pz3p+
-miAqkEdq2YDFzA6t+ouZL4C2OAg9fI7bggcYzYLfJ2PLZOj3n2vCgDlBCZ05Fo+m
-EfEROGy0EIkpsnx/nmMwv6muylYKO4AOSJ8T3xzruk0qp+LSijG0cjO1UUztRTo=
-=Mp+B
+iQEcBAABCgAGBQJTj48AAAoJEJgKPw0B/gTf9TQH/3fIZUJ/UPfVYurMgeh76/6p
+NBOCqeaEmRO5zzE6ocwF+Pno3Np5WnE1rk0jY2gPPNmmtX/KvxbtrjgTGhVYV5ka
+xz3AVpiXzS88f0YMCIBTPIS27B9xmKQsKQAemmupgPWIUzn8IZmReDkUVaMytN8I
+YsIR35i1BWDaSXh/w1HepmV3+o5eDe+4D0LYRZBwqvw+LBBAsOTcm7bmC6RkbxHk
+HWuymzRY2jMqAIXz+aLTKMq0OFDmQwZ06EiJgREj66R9dyRKif5/QkpZMA43WPDc
+bAY7k8HlW2D31x+2jicLQFM7JpQPXu/sIy25vkRF3jj3ud8YlcdPXnMJF0VOWlw=
+=kpDD
 -----END PGP SIGNATURE-----
 
 ```
@@ -26,7 +26,7 @@ size    exec  file                                     contents
               ./                                                                                                                                                                        
 150             .gitignore                             6638ebd299344c76a54d74ec041422b2c54cbdb940c9124491088311df780551                                                                 
 97              .npmignore                             785ab9aa5eacc50b7d8a01051820335d1d38151e0f101bccdd60af055be2d5d5                                                                 
-657             CHANGELOG.md                           283f8ca7b4353f6935b3a1df70cc5d63ca6eaf15a96f4493b96a2c4a056ced2c                                                                 
+1119            CHANGELOG.md                           1f103ffddca9654e201d65d3998918963b421985462117950a252e99ff46601d                                                                 
 21              CNAME                                  c0b589d1166bab7b26c1167db2dba2f8e920f303af4bce28ace28dd1b38964a7                                                                 
 808             CONTRIBUTING.md                        4c21334fe7f0fd2f3c35f664f87952692003f273aadb5a63377d41696f225d3d                                                                 
 10218           Cakefile                               9ec5b82336c43c2bd053551efd05fd4345ed6acf64e60a90eff638fcf54f8d7a                                                                 
@@ -191,30 +191,30 @@ size    exec  file                                     contents
 21027             underscore.coffee                    15993dac2a5cab60611b388a5ae5cb0c050473a17747a6a1d529f017fcee087e                                                                 
 274               web_server.coffee                    52cfc4defb8c8496adb58b6bd4b1ef73e3eec6544ae9653625a08e0d4c130488                                                                 
                 extras/                                                                                                                                                                 
-250550            iced-coffee-script-1.7.1-c-min.js    1f897bd631517cc67a3d69f9b3cafad66b9ffff0d4ce0ac124345f5cb6bed749                                                                 
-392715            iced-coffee-script-1.7.1-c.js        85b8981f115387f7f60fd4685985c768bbf19593961f1627da434af6ffbab22f                                                                 
+250625            iced-coffee-script-1.7.1-d-min.js    3e0f9fc9a2537570ff8adde711cc7e0fc7360602aa37d2a4f044311c4b5c0e07                                                                 
+392893            iced-coffee-script-1.7.1-d.js        bf70af81debacae50dddd0a44bedbd758409b45a62aa5fcb22bf1b2a1d1a8bd4                                                                 
 23488           iced.md                                9ac70931250a447139c01198a3e8eb584527b23d644132d8f41a128671c6057f                                                                 
 164727          index.html                             95e3e399d0f7a94c3d1906db81100a65dd442491f1730a48aa09e46cfff44ec0                                                                 
                 lib/                                                                                                                                                                    
                   coffee-script/                                                                                                                                                        
-4190                browser.js                         b5ad8f29fd15d7d7c86ffdd1e988472283863bcda1c6bc32bc72799bf4c783d3                                                                 
-3006                cake.js                            465b423ca5cd3cb43167e67a52f166ba874562c1d60fd578380c613296e36b7b                                                                 
-11025               coffee-script.js                   9ef623af36e625e965f72eb88c145337677822180e8d1e652f76f5fd1027d69f                                                                 
-17827               command.js                         17001bf2a1fcba911f5b894e80e77f6d5017acd0a771d59ef796e52907d770e5                                                                 
+4190                browser.js                         67d6e5b45010008442b48be4633e4297601433613b9144ec6bbc74800b62df28                                                                 
+3006                cake.js                            d2168623647afcf95f11f8e1f0c9a85b88ff41a29407c72ffbf7a1b62f0d4753                                                                 
+11059               coffee-script.js                   e556c57a63f8dedd0971de448bc85e38245c87085c26e13c262bc4308a4d0c45                                                                 
+17827               command.js                         f0a5495cb3a5c88773519f38a96ea91688b4f95e1e859f18acd34124661959ec                                                                 
 2009                extensions.js                      ced5a5918069fc2873faf327ea6edd100b71a91d11403eadcb298fc59ef4557e                                                                 
-20065               grammar.js                         f1f4763a018d00b6f9878310a4e4e493d02214fe42f0dde33a76f6a8ed84ad37                                                                 
-6984                helpers.js                         87e3bb4f5cf770b7506be05c1af0e69b6ba1e43bdbcde5445896707e2974d8aa                                                                 
-204                 iced.js                            9eda80f7433fc3296d91b2482d0d28f1c3e89ff18164989d99d2576ca82acff9                                                                 
-202                 index.js                           8b3e5085aac3893b4c322c1ee756aeda3219d1520543a8b0fb70a27909a4d31a                                                                 
-31764               lexer.js                           e30751234ac786bc9d6b85280e85fc9b6aa6d3edb63fb84a53f89d63c62910d2                                                                 
-148708              nodes.js                           36d6e3bf33213f56f4187aea8318635884fba79340e2f3cc33cefee5aeb42ed5                                                                 
-4146                optparse.js                        e6d36d8cd34cacd0ac66bf67bbc51fd3fecdab1de838a9373a70b8853f0a89e7                                                                 
+20065               grammar.js                         91aa7b382df08a143d3f6d47ef5af77b26917b21982ef475890f39e3b3c8ffd1                                                                 
+6984                helpers.js                         794f0d9ce0d9584d7fcf9c4061421136d1da8e2ab71795e9f431f146fdd38361                                                                 
+204                 iced.js                            ef9631bcd9a2a8fcca26f72bdf24811f6766cd7fd4bf514aa660b6d5f53f7a3d                                                                 
+202                 index.js                           e48354f1e61c7ab407173af6217a3a7e33b0d841f5ebc386e338c8fb039d3dad                                                                 
+31764               lexer.js                           50a44939c4358e7ae222c1aafe778c1de5230b5ad1bfccd5d528f2a3eaa885c8                                                                 
+148852              nodes.js                           a3dafb0217760ec0d424361b62c30caafc0d290ae939b4db90fb51127b8c190f                                                                 
+4146                optparse.js                        9e47c4d04768eb78ac4316d496632fb9cf9e873f7e62f815999707c0062a0c51                                                                 
 131158  x           parser.js                          27a7e97629e2f146319b503d45098369cfaf12d222ae1990583ae6af36649618                                                                 
-1874                register.js                        97ec837fc2df79ea1dd402bc5a9ce8e0861e5987809688a4ad46bdb93604c07f                                                                 
-5885                repl.js                            d0bc6020fbe8eb792e1fb967c53b167bf3566378d332cadacc41675ed8f7c255                                                                 
-18026               rewriter.js                        06d58bffbba9199d48007ee40cdf4022c73a056c153582b2622b2cacf08a233b                                                                 
-3892                scope.js                           d3d9959fed5a7137f2e2a692ddcb53eea97e96b20f6b828b65bf4d3751242983                                                                 
-4713                sourcemap.js                       9ced54a6441c9e5c889584453747fe0ec61d416180b7d492856bf42fc0e205ba                                                                 
+1874                register.js                        fef71f695e71d15afdd6e87779509de8ceaba07f597747a9e567a16359ecd12b                                                                 
+5885                repl.js                            82a2d8df8f1280c75a152747eb15bab9006a61d2927eb8d96182f653a4c0c6a2                                                                 
+18026               rewriter.js                        bd517c2579789edbd7e8e0a984ef33d81f0b2e521800ed6cd191e3323e582ff2                                                                 
+3892                scope.js                           52ffc4f66dd05df619d27f7c093a57c03ab3fdfb0e1776201a686b0832cba43b                                                                 
+4713                sourcemap.js                       f78726826b0f855db821f3d0815ee4e8a62639f0fc8d6f07b2d7fcbac8313f69                                                                 
                 media/                                                                                                                                                                  
 42586             detail.png                           be99f09955229ef97f7d104eeecd29c52318aa090ee6e6da54ece3872af75bd6|f49f29e3da6c427981b72462889f09bf0c863b0b5711c26061561d0db8ec4f69
 104388            post-rotate.png                      3b5bd479a30ef1af683f54cc63c4f28c272ba9d379be425d4a884da59b5ed782|97f5820d9e2029705a53514a92704e1333ef05254eb398fa7159db92ebfdaa76
@@ -225,19 +225,19 @@ size    exec  file                                     contents
 149621            rotate4.png                          d404c8cee351ed5f539f049f4562e3120b30808e40ac7b59124c54b44802167c|a8d0394d21e61c84a67f8978ce6466f0e2f1416146745a7016c033c2f5c18c9c
 74346             rotate5.png                          e96297c69a6cff2e6b50d204661dcd0d575b14ee0a6bd0f0ef6b8d2db64c869c|322bfba64fe9bb8e3474bb8bb787d3b9827a46851d87b65941fb8d2d45ac3dc2
 99754             sketch.pdf                           a146828ee936efb7145f9d194eb4050cea6cee5a1947dd6d84cd96c32344668a|0b396cc0fc75ed4351cda8ecfd7fdd4c4edbc857e3bdd77eaac2bd6c2677362c
-1025            package.json                           856e85d568a455d73753cf535e2bd20f8aba14ace9e7ecda3317247a80a4a5b7                                                                 
+1025            package.json                           59d97fd0507abfb7fb3f50b20efbe156e89b066af239e4a12100de48b106fa1f                                                                 
 41              register.js                            df03872cd6b8842e3bc485215ec78670a2aac9b639f1ae76171cca0afb90daef                                                                 
                 src/                                                                                                                                                                    
 3254              browser.coffee                       f4804316adc6825af9bc5feb03de5b9829eff2fb0f56c7828ec77d00273fab34                                                                 
 3482              cake.coffee                          a545ab6d3f4701daddaa136933985b699e207bc22bb3b433d6eaaf744a762077                                                                 
-10693             coffee-script.coffee                 f35ba65a4e7bddb7fff3c88b569e6e3e8028b852e76f5bd6270ec0a4b7122e8e                                                                 
+10793             coffee-script.coffee                 6a887bdb7301614d8bc26e98dbc027dc55da0b353febc3baf44a81ac371ad55e                                                                 
 15155             command.coffee                       c23cf9de9d802781936e66400eeea6bb839617c01ab8f50bf2ea9436c857e348                                                                 
 25188             grammar.coffee                       d8264e95662114745f0292a09fdf30f505293b4f19ec3b541019c6077fc3a81d                                                                 
 6868              helpers.coffee                       51af52ba10017962df0dbc4d04091c9b7f9933f1eb6f5761961e2c5f4f8421cd                                                                 
 150               iced.coffee                          6a021f2d552b9510098601b9cbf0bd11f9ad2f9ddec998afb7302a9380aeb3db                                                                 
 108               index.coffee                         5f23f9ca36bcfae1dd75df1c10d7fd4c2b1323df30e27a67a1cd930b5450d9bd                                                                 
 32617             lexer.coffee                         5e9359e17df81524f0f9e9c5acc962ec5577c7e7aa3362ac72be252981b68c04                                                                 
-125565            nodes.coffee                         5313558a1e06624f2eb1b162b1057e2579aa5dc853852e1b8cc4c45530206d74                                                                 
+125659            nodes.coffee                         ee46b4075128f3360a01a69958b94cad874ec2ae67ee5263338f533d8cf02d14                                                                 
 4069              optparse.coffee                      894a675561d20ed3341a7b5de99c618594eabf49c8d23bb327644ef2e9d8534e                                                                 
 1916              register.coffee                      efcaf532c228530da431b92d90b354726a1174817e82f924ed422a82b212eeef                                                                 
 5191              repl.coffee                          f0b8d5cb5813e8e471932e02a52c4dd05fec17ce6c60b500d5a9e987aed14d3e                                                                 
@@ -312,7 +312,7 @@ dropbox  # ignore .dropbox-cache and other Dropbox-related files
 kb       # ignore anything as described by .kbignore files          
 ```
 
-<!-- summarize version = 0.0.8 -->
+<!-- summarize version = 0.0.9 -->
 
 ### End signed statement
 
