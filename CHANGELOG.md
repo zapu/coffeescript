@@ -1,4 +1,10 @@
-## v1.7.1-d  (2014-06-04)
+## v1.7.1-e (2014-06-04)
+
+Bugfixes:
+
+  - Fix a problem with registering modules as pointed out by @icflorescu 
+
+## v1.7.1-d (2014-06-04)
 
 Bugfixes:
 

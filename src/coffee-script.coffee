@@ -14,7 +14,7 @@ iced_transform = require('./iced').transform
 iced_runtime   = require 'iced-runtime'
 
 # The current CoffeeScript version number.
-exports.VERSION = '1.7.1-d'
+exports.VERSION = '1.7.1-e'
 
 exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced']
 
@@ -161,12 +161,15 @@ exports.eval = (code, options = {}) ->
 
 exports.register = -> require './register'
 
-exports._compileFile = (filename, sourceMap = no) ->
+exports._compileFile = (filename, sourceMap = no, opts_passed = {}) ->
   raw = fs.readFileSync filename, 'utf8'
   stripped = if raw.charCodeAt(0) is 0xFEFF then raw.substring 1 else raw
 
+  opts = { filename, sourceMap, literate: helpers.isLiterate filename }
+  opts[k] = v for k,v of opts_passed
+
   try
-    answer = compile(stripped, {filename, sourceMap, literate: helpers.isLiterate filename})
+    answer = compile(stripped, opts)
   catch err
     # As the filename and code of a dynamically loaded file will be different
     # from the original file compiled with CoffeeScript.run, add that
