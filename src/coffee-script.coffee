@@ -117,6 +117,7 @@ exports.run = (code, options = {}) ->
 
   # Compile.
   if not helpers.isCoffee(mainModule.filename) or require.extensions
+    options.runtime = "interp" # look for the runtime relative to the "iced-coffee-script" compiler
     answer = compile code, options
     code = answer.js ? answer
 

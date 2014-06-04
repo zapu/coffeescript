@@ -269,6 +269,7 @@
     dir = options.filename ? path.dirname(fs.realpathSync(options.filename)) : fs.realpathSync('.');
     mainModule.paths = _dereq_('module')._nodeModulePaths(dir);
     if (!helpers.isCoffee(mainModule.filename) || _dereq_.extensions) {
+      options.runtime = "interp";
       answer = compile(code, options);
       code = (_ref = answer.js) != null ? _ref : answer;
     }
@@ -5092,7 +5093,7 @@
     }
 
     IcedRuntime.prototype.compileNode = function(o, level) {
-      var accessname, assign, call, callv, file, inc, k, klass, lhs_vec, modname, ns, req, rhs, v, val, window_mode, window_val, _i, _j, _len, _len1, _ref2;
+      var access, accessname, assign, call, callv, file, inc, interp, k, klass, lhs_vec, modname, ns, req, rhs, v, val, window_mode, window_val, _i, _j, _len, _len1, _ref2;
       this.expressions = [];
       v = o.runtime ? o.runtime : o.bare ? "none" : this.foundDefer ? "node" : "none";
       if (o.runtime && !this.foundDefer && !o.runforce) {
@@ -5114,12 +5115,18 @@
             return InlineRuntime.generate(window_val ? window_val.copy() : null);
           case "node":
           case "browserify":
-            modname = "iced-runtime";
+          case "interp":
+            interp = v === "interp";
+            modname = interp ? "iced-coffee-script" : "iced-runtime";
             accessname = iced["const"].ns;
             file = new Literal("'" + modname + "'");
+            access = new Access(new Literal(accessname));
             req = new Value(new Literal("require"));
             call = new Call(req, [file]);
             callv = new Value(call);
+            if (interp) {
+              callv.add(access);
+            }
             ns = new Value(new Literal(iced["const"].ns));
             return new Assign(ns, callv);
           case "none":
