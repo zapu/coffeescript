@@ -16,7 +16,7 @@ iced_runtime   = require 'iced-runtime'
 # The current CoffeeScript version number.
 exports.VERSION = '1.7.1-e'
 
-exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced']
+exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced', '.liticed', '.iced.md']
 
 # Expose helpers for testing.
 exports.helpers = helpers
