@@ -176,7 +176,7 @@
 
   exports.VERSION = '1.7.1-e';
 
-  exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced'];
+  exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced', '.liticed', '.iced.md'];
 
   exports.helpers = helpers;
 
@@ -685,11 +685,11 @@
   };
 
   exports.isCoffee = function(file) {
-    return /\.((lit)?coffee|coffee\.md|iced)$/.test(file);
+    return /\.((lit)?coffee|coffee\.md|iced|liticed|iced\.md)$/.test(file);
   };
 
   exports.isLiterate = function(file) {
-    return /\.(litcoffee|coffee\.md)$/.test(file);
+    return /\.(litcoffee|coffee\.md|liticed|iced\.md)$/.test(file);
   };
 
   exports.throwSyntaxError = function(message, location) {

@@ -1,3 +1,10 @@
+## v1.7.1-f
+
+Features:
+
+  - Allow .liticed and iced.md suffices for "literate" iced (via @bwin)
+
+
 ## v1.7.1-e (2014-06-04)
 
 Bugfixes:
