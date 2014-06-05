@@ -139,7 +139,7 @@ findDirectoryIndex = (source) ->
       return index if (fs.statSync index).isFile()
     catch err
       throw err unless err.code is 'ENOENT'
-  console.error "Missing index.coffee or index.litcoffee in #{source}"
+  console.error "Missing index(#{CoffeeScript.FILE_EXTENSIONS.join "|"}) in #{source}"
   process.exit 1
 
 # Compile a single source script, containing the given code, according to the
