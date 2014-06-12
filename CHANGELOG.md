@@ -1,9 +1,9 @@
-## v1.7.1-f
+## v1.7.1-f (2014-06-11)
 
 Features:
 
   - Allow .liticed and iced.md suffices for "literate" iced (via @bwin)
-
+  - Close #123 -- allow debugger to work in a loop
 
 ## v1.7.1-e (2014-06-04)
 

@@ -735,7 +735,7 @@ exports.Literal = class Literal extends Base
       @value = "_arguments"
     false
 
-  icedIsJump : -> @isStatement()
+  icedIsJump : -> (@value in [ 'break', 'continue'] )
 
   icedCompileIced: (o) ->
     d =
