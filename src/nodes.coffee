@@ -8,6 +8,7 @@ Error.stackTraceLimit = Infinity
 {Scope} = require './scope'
 {RESERVED, STRICT_PROSCRIBED} = require './lexer'
 iced = require 'iced-runtime'
+pathmod = require 'path'
 
 # Import the helpers we plan to use.
 {compact, flatten, extend, merge, del, starts, ends, last, some,
@@ -2660,7 +2661,7 @@ class IcedRuntime extends Block
         InlineRuntime.generate(if window_val then window_val.copy() else null)
       when "node", "browserify", "interp"
         interp = (v is "interp")
-        modname = if interp then "iced-coffee-script" else "iced-runtime"
+        modname = if interp then pathmod.join(__dirname, "..", "..") else "iced-runtime"
         accessname = iced.const.ns
         file = new Literal "'#{modname}'"
         access = new Access new Literal accessname
