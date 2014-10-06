@@ -66,9 +66,6 @@ runScripts = ->
       index++
       execute()
 
-  console.log "shiiiit"
-  console.log CoffeeScript
-
   for script, i in coffees
     do (script, i) ->
       options = literate: script.type is coffeetypes[1]

@@ -112,8 +112,6 @@
         return execute();
       }
     };
-    console.log("shiiiit");
-    console.log(CoffeeScript);
     _fn = function(script, i) {
       var options;
       options = {
