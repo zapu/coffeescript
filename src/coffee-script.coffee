@@ -14,7 +14,7 @@ iced_transform = require('./iced').transform
 iced_runtime   = require 'iced-runtime'
 
 # The current CoffeeScript version number.
-exports.VERSION = '1.7.1-g'
+exports.VERSION = '1.8.0-a'
 
 exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced', '.liticed', '.iced.md']
 
@@ -161,6 +161,14 @@ exports.eval = (code, options = {}) ->
 
 exports.register = -> require './register'
 
+# Throw error with deprecation warning when depending upon implicit `require.extensions` registration
+if require.extensions
+  for ext in @FILE_EXTENSIONS
+    require.extensions[ext] ?= ->
+      throw new Error """
+      Use CoffeeScript.register() or require the coffee-script/register module to require #{ext} files.
+      """
+
 exports._compileFile = (filename, sourceMap = no, opts_passed = {}) ->
   raw = fs.readFileSync filename, 'utf8'
   stripped = if raw.charCodeAt(0) is 0xFEFF then raw.substring 1 else raw
@@ -303,5 +311,5 @@ Error.prepareStackTrace = (err, stack) ->
     break if frame.getFunction() is exports.run
     "  at #{formatSourcePosition frame, getSourceMapping}"
 
-  "#{err.name}: #{err.message ? ''}\n#{frames.join '\n'}\n"
+  "#{err.toString()}\n#{frames.join '\n'}\n"
 

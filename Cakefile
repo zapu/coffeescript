@@ -65,6 +65,33 @@ codeFor = ->
     button = if executable then "<div class='minibutton ok' onclick='javascript: #{js};#{append}'>#{run}</div>" else ''
     "<div class='code'>#{cshtml}#{jshtml}#{script}#{load}#{button}<br class='clear' /></div>"
 
+monthNames = [
+  'January'
+  'February'
+  'March'
+  'April'
+  'May'
+  'June'
+  'July'
+  'August'
+  'September'
+  'October'
+  'November'
+  'December'
+]
+
+formatDate = (date) ->
+  date.replace /^(\d\d\d\d)-(\d\d)-(\d\d)$/, (match, $1, $2, $3) ->
+    "#{monthNames[$2 - 1]} #{+$3}, #{$1}"
+
+releaseHeader = (date, version, prevVersion) -> """
+  <div class="anchor" id="#{version}"></div>
+  <b class="header">
+    #{prevVersion and "<a href=\"https://github.com/jashkenas/coffeescript/compare/#{prevVersion}...#{version}\">#{version}</a>" or version}
+    <span class="timestamp"> &mdash; <time datetime="#{date}">#{formatDate date}</time></span>
+  </b>
+"""
+
 option '-p', '--prefix [DIR]', 'set the installation prefix for `cake install`'
 
 task 'install', 'install CoffeeScript into /usr/local (or --prefix)', (options) ->
@@ -77,7 +104,7 @@ task 'install', 'install CoffeeScript into /usr/local (or --prefix)', (options) 
   console.log   "Linking 'coffee' to #{bin}/coffee"
   exec([
     "mkdir -p #{lib} #{bin}"
-    "cp -rf bin lib LICENSE README package.json src #{lib}"
+    "cp -rf bin lib LICENSE README.md package.json src #{lib}"
     "ln -sfn #{lib}/bin/coffee #{bin}/coffee"
     "ln -sfn #{lib}/bin/cake #{bin}/cake"
     "mkdir -p ~/.node_libraries"
@@ -111,7 +138,7 @@ task 'build:parser', 'rebuild the Jison parser (run build first)', ->
 outFileName = (min) ->
   {version} = require('./package.json')
   fn = "iced-coffee-script-#{version}#{if min then '-min' else ''}.js"
-  path.join "extras", fn 
+  path.join "extras", fn
 
 task 'build:browser', 'rebuild the merged script for inclusion in the browser', ->
   browserify = require 'browserify'
@@ -135,11 +162,13 @@ task 'doc:site', 'watch and continually rebuild the documentation for the websit
 
   do renderIndex = ->
     codeSnippetCounter = 0
-    rendered = _.template fs.readFileSync(source, 'utf-8'), codeFor: codeFor()
+    rendered = _.template fs.readFileSync(source, 'utf-8'),
+      codeFor: codeFor()
+      releaseHeader: releaseHeader
     fs.writeFileSync 'index.html', rendered
     log "compiled", green, "#{source}"
 
-  fs.watchFile source, internal: 200, renderIndex
+  fs.watchFile source, interval: 200, renderIndex
   log "watching..." , green
 
 task 'doc:source', 'rebuild the internal documentation', ->
@@ -250,6 +279,12 @@ runTests = (CoffeeScript) ->
 
   # Run every test in the `test` folder, recording failures.
   files = fs.readdirSync 'test'
+
+  # Ignore generators test file if generators are not available
+  generatorsAreAvailable = '--harmony' in process.execArgv or
+    '--harmony-generators' in process.execArgv
+  files.splice files.indexOf('generators.coffee'), 1 if not generatorsAreAvailable
+
   for file in files when helpers.isCoffee file
     console.log "XX #{file}"
     literate = helpers.isLiterate file

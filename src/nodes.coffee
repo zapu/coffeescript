@@ -173,7 +173,7 @@ exports.Base = class Base
   # `toString` representation of the node, for inspecting the parse tree.
   # This is what `coffee --nodes` prints out.
   toString: (idt = '', name = @constructor.name) ->
-    extras = [] 
+    extras = []
     extras.push "A" if @icedNodeFlag
     extras.push "L" if @icedLoopFlag
     extras.push "P" if @icedCpsPivotFlag
@@ -769,10 +769,10 @@ class exports.Bool extends Base
 # A `return` is a *pureStatement* -- wrapping it in a closure wouldn't
 # make sense.
 exports.Return = class Return extends Base
-  constructor: (expr, auto) ->
+
+  constructor: (@expression, auto) ->
     super()
     @icedHasAutocbFlag = auto
-    @expression = expr if expr and not expr.unwrap().isUndefined
 
   children: ['expression']
 
@@ -947,7 +947,7 @@ exports.Comment = class Comment extends Base
   makeReturn:      THIS
 
   compileNode: (o, level) ->
-    comment = @comment.replace /^(\s*)#/gm, "$1 *"
+    comment = @comment.replace /^(\s*)# /gm, "$1 * "
     code = "/*#{multident comment, @tab}#{if '\n' in comment then "\n#{@tab}" else ''} */"
     code = o.indent + code if (level or o.level) is LEVEL_TOP
     [@makeCode("\n"), @makeCode(code)]
@@ -1523,7 +1523,7 @@ exports.Assign = class Assign extends Base
     forbidden = (name = @variable.unwrapAll().value) in STRICT_PROSCRIBED
     if forbidden and @context isnt 'object'
       @variable.error "variable name may not be \"#{name}\""
-    @icedlocal = options and options.icedlocal        
+    @icedlocal = options and options.icedlocal
 
   children: ['variable', 'value']
 
@@ -1714,6 +1714,8 @@ exports.Code = class Code extends Base
     @icedgen = tag is 'icedgen'
     @icedPassedDeferral = null
     @bound   = tag is 'boundfunc' or @icedgen
+    @isGenerator = @body.contains (node) ->
+      node instanceof Op and node.operator in ['yield', 'yield*']
 
   children: ['params', 'body']
 
@@ -1784,9 +1786,10 @@ exports.Code = class Code extends Base
     wasEmpty = false if @icedHasAutocbFlag
 
     @body.makeReturn() unless wasEmpty or @noReturn
-    code  = 'function'
-    code  += ' ' + @name if @ctor
-    code  += '('
+    code = 'function'
+    code += '*' if @isGenerator
+    code += ' ' + @name if @ctor
+    code += '('
     answer = [@makeCode(code)]
     for p, i in params
       if i then answer.push @makeCode ", "
@@ -1809,7 +1812,7 @@ exports.Code = class Code extends Base
   # unless `crossScope` is `true`.
   traverseChildren: (crossScope, func) ->
     super(crossScope, func) if crossScope
- 
+
   icedPatchBody : (o) ->
 
     # Some iced functions need to squirrel away the original arguments.
@@ -1840,7 +1843,7 @@ exports.Code = class Code extends Base
     # function that contains them (since only 'var's) are output.
     # Thus, we had to make a hack to scope.coffee to support this particular
     # case.
-    # 
+    #
     if @icedNodeFlag and not @icedgen
       r = if @icedHasAutocbFlag then iced.const.autocb else iced.const.k_noop
       rhs = new Value new Literal r
@@ -2004,7 +2007,7 @@ exports.Splat = class Splat extends Base
 
   icedToSlot: (i) ->
     new Slot(i, new Value(@name), null, true)
-    
+
 #### Expansion
 
 # Used to skip values inside an array destructuring (pattern matching) or
@@ -2194,9 +2197,10 @@ exports.Op = class Op extends Base
 
   # The map of conversions from CoffeeScript to JavaScript symbols.
   CONVERSIONS =
-    '==': '==='
-    '!=': '!=='
-    'of': 'in'
+    '==':        '==='
+    '!=':        '!=='
+    'of':        'in'
+    'yieldfrom': 'yield*'
 
   # The map of invertible operators.
   INVERSIONS =
@@ -2206,6 +2210,9 @@ exports.Op = class Op extends Base
   children: ['first', 'second']
 
   isSimpleNumber: NO
+
+  isYield: ->
+    @operator in ['yield', 'yield*']
 
   isUnary: ->
     not @second
@@ -2273,6 +2280,7 @@ exports.Op = class Op extends Base
       @error 'delete operand may not be argument or var'
     if @operator in ['--', '++'] and @first.unwrapAll().value in STRICT_PROSCRIBED
       @error "cannot increment/decrement \"#{@first.unwrapAll().value}\""
+    return @compileYield     o if @isYield()
     return @compileUnary     o if @isUnary()
     return @compileChain     o if isChain
     switch @operator
@@ -2325,6 +2333,19 @@ exports.Op = class Op extends Base
       @first = new Parens @first
     parts.push @first.compileToFragments o, LEVEL_OP
     parts.reverse() if @flip
+    @joinFragmentArrays parts, ''
+
+  compileYield: (o) ->
+    parts = []
+    op = @operator
+    if not o.scope.parent?
+      @error 'yield statements must occur within a function generator.'
+    if 'expression' in Object.keys @first
+      parts.push @first.expression.compileToFragments o, LEVEL_OP if @first.expression?
+    else
+      parts.push [@makeCode "(#{op} "]
+      parts.push @first.compileToFragments o, LEVEL_OP
+      parts.push [@makeCode ")"]
     @joinFragmentArrays parts, ''
 
   compilePower: (o) ->
@@ -2509,7 +2530,7 @@ exports.Defer = class Defer extends Base
   transform : (o) ->
     meth = new Value new Literal iced.const.defer_method
 
-    # In the custom case, there's a foo.defer, and we're going to 
+    # In the custom case, there's a foo.defer, and we're going to
     # use the `foo` as the this object.  Otherwise, we'll
     # use the `__iced_deferrals` in the current scope as the `this` object
     if @custom
@@ -2677,22 +2698,22 @@ class IcedRuntime extends Block
     @push inc if inc
 
     if @foundAwait
-      
-      # Emit __iced_k = __iced_k_noop = function(){} 
+
+      # Emit __iced_k = __iced_k_noop = function(){}
       rhs = new Code [], new Block []
 
       lhs_vec = []
       for k in [ iced.const.k_noop, iced.const.k ]
         val = new Value new Literal k
-        
+
         # Add window. if necessary
         if window_val
           klass = window_val.copy()
           klass.add new Access val
           val = klass
-          
+
         lhs_vec.push val
-          
+
       assign = rhs
       for v in lhs_vec
         assign = new Assign v, assign
@@ -3027,7 +3048,7 @@ exports.For = class For extends While
       condition = new Op "||", new Parens(pos), new Parens(neg)
       condition = condition.invert()
       # Init statements
-      init = [ 
+      init = [
         new Assign(@name, @source.base.from)
         new Assign(begin, @source.base.from)
         new Assign(end, @source.base.to)
@@ -3496,7 +3517,7 @@ UTILITIES =
   "
 
   modulo: -> """
-    function(a, b) { return (a % b + +b) % b; }
+    function(a, b) { return (+a % (b = +b) + b) % b; }
   """
 
   # Shortcuts to speed up the lookup time for native functions.

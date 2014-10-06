@@ -2,7 +2,7 @@
   "name": "iced-coffee-script",
   "description": "IcedCoffeeScript",
   "author": "Jeremy Ashkenas + Maxwell Krohn",
-  "version": "1.7.1-g",
+  "version": "1.8.0-a",
   "keywords": [
     "javascript",
     "language",
@@ -22,7 +22,8 @@
     "icake": "./bin/cake"
   },
   "scripts": {
-    "test": "node ./bin/cake test"
+    "test": "node ./bin/cake test",
+    "test-harmony": "node --harmony ./bin/cake test"
   },
   "homepage": "http://maxtaco.github.io/coffee-script",
   "bugs": "https://github.com/maxtaco/coffee-script/issues",
