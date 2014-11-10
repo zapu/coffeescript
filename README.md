@@ -1,11 +1,10 @@
-            {
-         }   }   {
-        {   {  }  }
-         }   }{  {
-        {  }{  }  }                    _____       __  __
-       { }{ }{  { }                   / ____|     / _|/ _|
-     .- { { }  { }} -.               | |     ___ | |_| |_ ___  ___
-    (  { } { } { } }  )              | |    / _ \|  _|  _/ _ \/ _ \
+        
+                                      ICED
+        
+                                       _____       __  __
+                                      / ____|     / _|/ _|
+     .- ----------- -.               | |     ___ | |_| |_ ___  ___
+    (  (ice cubes)    )              | |    / _ \|  _|  _/ _ \/ _ \
     |`-..________ ..-'|              | |___| (_) | | | ||  __/  __/
     |                 |               \_____\___/|_| |_| \___|\___|
     |                 ;--.
@@ -19,6 +18,8 @@
                                                         |_|
 
 CoffeeScript is a little language that compiles into JavaScript.
+IcedCoffeeScript is a superset of CoffeeScript that adds two new 
+keywords: `await` and `defer`.
 
 ## Installation
 
@@ -58,3 +59,4 @@ If you'd like to chat, drop by #coffeescript on Freenode IRC.
 The source repository: https://github.com/maxtaco/coffee-script.git
 
 Our lovely and talented contributors are listed [here](https://github.com/maxtaco/coffee-script/contributors) and [here](https://github.com/jashkenas/coffeescript/contributors).
+
