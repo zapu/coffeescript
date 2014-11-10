@@ -25,14 +25,14 @@ CoffeeScript is a little language that compiles into JavaScript.
 If you have the node package manager, npm, installed:
 
 ```shell
-npm install -g coffee-script
+npm install -g iced-coffee-script
 ```
 
 Leave off the `-g` if you don't wish to install globally. If you don't wish to use npm:
 
 ```shell
-git clone https://github.com/jashkenas/coffeescript.git
-sudo coffeescript/bin/cake install
+git clone https://github.com/maxtaco/coffee-script.git
+sudo coffee-script/bin/cake install
 ```
 
 ## Getting Started
@@ -40,21 +40,21 @@ sudo coffeescript/bin/cake install
 Execute a script:
 
 ```shell
-coffee /path/to/script.coffee
+iced /path/to/script.coffee
 ```
 
 Compile a script:
 
 ```shell
-coffee -c /path/to/script.coffee
+iced -c /path/to/script.coffee
 ```
 
-For documentation, usage, and examples, see: http://coffeescript.org/
+For documentation, usage, and examples, see: http://maxtaco.github.io/coffee-script/
 
-To suggest a feature or report a bug: http://github.com/jashkenas/coffeescript/issues
+To suggest a feature or report a bug: http://github.com/maxtaco/coffee-script/issues
 
 If you'd like to chat, drop by #coffeescript on Freenode IRC.
 
-The source repository: https://github.com/jashkenas/coffeescript.git
+The source repository: https://github.com/maxtaco/coffee-script.git
 
-Our lovely and talented contributors are listed here: http://github.com/jashkenas/coffeescript/contributors
+Our lovely and talented contributors are listed [here](https://github.com/maxtaco/coffee-script/contributors) and [here](https://github.com/jashkenas/coffeescript/contributors).
