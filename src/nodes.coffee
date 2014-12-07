@@ -2659,6 +2659,16 @@ class IcedRuntime extends Block
   constructor: (@foundDefer, @foundAwait) ->
     super()
 
+  topDir : () ->
+    d = __dirname
+    # See bug #139 --- on windows if we emit "require 'c:\Document And Settings'",
+    # we'll lose the path separators
+    if process.platform is 'windows'
+      parts = (d.split pathmod.sep).concat [ "..", ".." ]
+      parts.join "/"
+    else
+      pathmod.join d, "..", ".."
+
   compileNode: (o, level) ->
     @expressions = []
 
@@ -2682,7 +2692,7 @@ class IcedRuntime extends Block
         InlineRuntime.generate(if window_val then window_val.copy() else null)
       when "node", "browserify", "interp"
         interp = (v is "interp")
-        modname = if interp then pathmod.join(__dirname, "..", "..") else "iced-runtime"
+        modname = if interp then @topDir() else "iced-runtime"
         accessname = iced.const.ns
         file = new Literal "'#{modname}'"
         access = new Access new Literal accessname
