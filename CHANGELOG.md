@@ -1,3 +1,13 @@
+## v1.8.0-b
+
+Bufixes:
+
+  - Close #139
+
+## v1.8.0-a
+ 
+- Merge with CS v1.8.0
+
 ## v1.7.1-g (2014-09-19)
 
 Bufixes:
