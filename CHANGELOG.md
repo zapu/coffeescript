@@ -1,11 +1,15 @@
-## v1.8.0-b
+## v1.8.0-c (2014-12-7)
+
+- Another attempt to fix #139, this time it hopefully works
+
+## v1.8.0-b (2014-12-6)
 
 Bufixes:
 
   - Close #139
 
 ## v1.8.0-a
- 
+
 - Merge with CS v1.8.0
 
 ## v1.7.1-g (2014-09-19)
@@ -25,19 +29,19 @@ Features:
 
 Bugfixes:
 
-  - Fix a problem with registering modules as pointed out by @icflorescu 
+  - Fix a problem with registering modules as pointed out by @icflorescu
 
 ## v1.7.1-d (2014-06-04)
 
 Bugfixes:
 
-  - Close #121: allow `iced foo.iced` from anywhere, even if you don't have 
+  - Close #121: allow `iced foo.iced` from anywhere, even if you don't have
     `iced-runtime` installed globally or locally -- just make a run mode that
     looks for it internalls to the compiler/interpreter.
 
 Tweaks:
 
-  - Try this: `iced = require('iced-runtime')`, as opposed to: 
+  - Try this: `iced = require('iced-runtime')`, as opposed to:
     `iced = require('iced-runtime').iced;`.  This puts the runtime
     and the library features at the same level. This is more natural
     I think...

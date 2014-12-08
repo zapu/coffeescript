@@ -2577,6 +2577,16 @@ exports.Defer = class Defer extends Base
     @parentFunc = o.currFunc
     super p, o
 
+quote_path_for_emission = (n) ->
+  # Replace '\' with '\\' to make the emitted code safe for Windows
+  # paths.  See Issue #84. Thanks to @Deathspike for this patch
+  '"' + n.replace(/\\/g, '\\\\') + '"'
+
+require_top_dir = () ->
+  # See #139, need to use window-safe pathname quoting for requring
+  # the top current directory. Windows!
+  quote_path_for_emission(pathmod.join __dirname, "..", "..")
+
 #### Await
 
 exports.Await = class Await extends Base
@@ -2601,9 +2611,7 @@ exports.Await = class Await extends Base
     if o.filename?
       fn_lhs = new Value new Literal iced.const.filename
 
-      # Replace '\' with '\\' to make the emitted code safe for Windows
-      # paths.  See Issue #84. Thanks to @Deathspike for this patch
-      fn_rhs = new Value new Literal '"' + o.filename.replace(/\\/g, '\\\\') + '"'
+      fn_rhs = new Value new Literal quote_path_for_emission o.filename
       fn_assignment = new Assign fn_lhs, fn_rhs, "object"
       assignments.push fn_assignment
 
@@ -2659,15 +2667,7 @@ class IcedRuntime extends Block
   constructor: (@foundDefer, @foundAwait) ->
     super()
 
-  topDir : () ->
-    d = __dirname
-    # See bug #139 --- on windows if we emit "require 'c:\Document And Settings'",
-    # we'll lose the path separators
-    if process.platform is 'windows'
-      parts = (d.split pathmod.sep).concat [ "..", ".." ]
-      parts.join "/"
-    else
-      pathmod.join d, "..", ".."
+
 
   compileNode: (o, level) ->
     @expressions = []
@@ -2692,9 +2692,9 @@ class IcedRuntime extends Block
         InlineRuntime.generate(if window_val then window_val.copy() else null)
       when "node", "browserify", "interp"
         interp = (v is "interp")
-        modname = if interp then @topDir() else "iced-runtime"
+        qmodname = if interp then require_top_dir() else "'iced-runtime'"
         accessname = iced.const.ns
-        file = new Literal "'#{modname}'"
+        file = new Literal qmodname
         access = new Access new Literal accessname
         req = new Value new Literal "require"
         call = new Call req, [ file ]
