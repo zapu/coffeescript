@@ -141,6 +141,21 @@ atest "simple autocb operations", (cb) ->
   await foo defer b
   cb(b, {})
 
+atest "fat arrow autocb operations", (cb) ->
+  b = false
+  foo = (autocb) =>
+    await delay defer()
+    true
+  await foo defer b
+  cb(b, {})
+
+atest "returning autocb as last value of a block", (cb) ->
+  b = false
+  maker = (val) -> (autocb) -> val
+  foo = maker true
+  await foo defer b
+  cb(b, {})
+
 atest "AT variable works in an await (1)", (cb) ->
   class MyClass
     constructor : ->
