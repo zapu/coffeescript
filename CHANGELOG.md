@@ -1,3 +1,7 @@
+# v1.8.0-d (2015-03-01)
+
+- Fix autocb for fat arrow functions. Bug report and PR by @davidbau
+
 ## v1.8.0-c (2014-12-7)
 
 - Another attempt to fix #139, this time it hopefully works
