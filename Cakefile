@@ -210,6 +210,12 @@ runTests = (CoffeeScript) ->
   passedTests = 0
   failures    = []
   attemptedTests = 0
+  pendingTests = {}
+
+  track = (fn, running) ->
+    t = fn.test
+    key = "#{t.currentFile} (#{t.attemptedTests}): #{t.description}"
+    pendingTests[key] = running
 
   global[name] = func for name, func of require 'assert'
 
@@ -221,9 +227,11 @@ runTests = (CoffeeScript) ->
   global.test = (description, fn) ->
     try
       ++attemptedTests
-      fn.test = {description, currentFile}
+      fn.test = {description, currentFile, attemptedTests}
+      track fn, true
       fn.call(fn)
       ++passedTests
+      track fn, false
     catch e
       failures.push
         filename: currentFile
@@ -234,10 +242,12 @@ runTests = (CoffeeScript) ->
   # An async testing primitive
   global.atest = (description, fn) ->
     ++attemptedTests
-    fn.test = { description, currentFile }
+    fn.test = { description, currentFile, attemptedTests }
+    track fn, true
     fn.call fn, (ok, e) =>
       if ok
         ++passedTests
+        track fn, false
       else
         e.description = description if description?
         e.source      = fn.toString() if fn.toString?
@@ -266,7 +276,10 @@ runTests = (CoffeeScript) ->
   process.on 'exit', ->
     time = ((Date.now() - startTime) / 1000).toFixed(2)
     message = "passed #{passedTests} tests in #{time} seconds#{reset}"
-    log("Only #{passedTests} of #{attemptedTests} came back; some went missing!", red) unless passedTests == attemptedTests
+    if passedTests != attemptedTests
+      log("Only #{passedTests} of #{attemptedTests} came back; some went missing!", red)
+      for desc, pending of pendingTests when pending
+        log(desc, red)
     return log(message, green) unless failures.length
     log "failed #{failures.length} and #{message}", red
     for fail in failures
