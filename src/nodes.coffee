@@ -2570,7 +2570,7 @@ exports.Defer = class Defer extends Base
     for v in @vars
       name = v.compile o, LEVEL_LIST
       scope = o.scope
-      scope.add name, 'var'
+      scope.find name, 'var'
     call.compileNode o
 
   icedWalkAst : (p, o) ->
