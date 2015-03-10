@@ -615,6 +615,19 @@ atest 'defer + class member assignments', (cb) ->
   await c.f defer z
   cb(c.x is 3 and c.y is 4 and z is 5,  {})
 
+# tests bug #146 (github.com/maxtaco/coffee-script/issues/146)
+atest 'deferral variable with same name as a parameter in outer scope', (cb) ->
+  val = 0
+  g = (autocb) ->
+    return 2
+  f = (x) ->
+    (->
+      val = x
+      await g defer(x)
+    )()
+  f 1
+  cb(val is 1, {})
+
 # helper to assert that a string should fail compilation
 cantCompile = (code) ->
   throws -> CoffeeScript.compile code
