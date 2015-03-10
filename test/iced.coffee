@@ -141,6 +141,21 @@ atest "simple autocb operations", (cb) ->
   await foo defer b
   cb(b, {})
 
+atest "fat arrow autocb operations", (cb) ->
+  b = false
+  foo = (autocb) =>
+    await delay defer()
+    true
+  await foo defer b
+  cb(b, {})
+
+atest "returning autocb as last value of a block", (cb) ->
+  b = false
+  maker = (val) -> (autocb) -> val
+  foo = maker true
+  await foo defer b
+  cb(b, {})
+
 atest "AT variable works in an await (1)", (cb) ->
   class MyClass
     constructor : ->
@@ -599,6 +614,19 @@ atest 'defer + class member assignments', (cb) ->
   c = new MyClass2()
   await c.f defer z
   cb(c.x is 3 and c.y is 4 and z is 5,  {})
+
+# tests bug #146 (github.com/maxtaco/coffee-script/issues/146)
+atest 'deferral variable with same name as a parameter in outer scope', (cb) ->
+  val = 0
+  g = (autocb) ->
+    return 2
+  f = (x) ->
+    (->
+      val = x
+      await g defer(x)
+    )()
+  f 1
+  cb(val is 1, {})
 
 # helper to assert that a string should fail compilation
 cantCompile = (code) ->

@@ -177,6 +177,7 @@ exports.Base = class Base
     extras.push "A" if @icedNodeFlag
     extras.push "L" if @icedLoopFlag
     extras.push "P" if @icedCpsPivotFlag
+    extras.push "B" if @icedIsAutocbCode
     extras.push "C" if @icedHasAutocbFlag
     extras.push "D" if @icedParentAwait
     extras.push "G" if @icedFoundArguments
@@ -1783,7 +1784,7 @@ exports.Code = class Code extends Base
       node.error "multiple parameters named '#{name}'" if name in uniqs
       uniqs.push name
 
-    wasEmpty = false if @icedHasAutocbFlag
+    wasEmpty = false if @icedIsAutocbCode
 
     @body.makeReturn() unless wasEmpty or @noReturn
     code = 'function'
@@ -1845,7 +1846,7 @@ exports.Code = class Code extends Base
     # case.
     #
     if @icedNodeFlag and not @icedgen
-      r = if @icedHasAutocbFlag then iced.const.autocb else iced.const.k_noop
+      r = if @icedIsAutocbCode then iced.const.autocb else iced.const.k_noop
       rhs = new Value new Literal r
       lhs = new Value new Literal iced.const.k
       @body.unshift(new Assign lhs, rhs, null, { icedlocal : yes } )
@@ -1866,8 +1867,9 @@ exports.Code = class Code extends Base
       if param.name instanceof Literal and param.name.value is iced.const.autocb
         o.foundAutocb = true
         break
-    @icedHasAutocbFlag = o.foundAutocb
     super parent, o
+    @icedHasAutocbFlag = fa_prev
+    @icedIsAutocbCode = o.foundAutocb
     @icedFoundArguments = o.foundArguments
     o.foundAwaitFunc = faf_prev
     o.foundArguments = fg_prev
@@ -2568,7 +2570,7 @@ exports.Defer = class Defer extends Base
     for v in @vars
       name = v.compile o, LEVEL_LIST
       scope = o.scope
-      scope.add name, 'var'
+      scope.find name, 'var'
     call.compileNode o
 
   icedWalkAst : (p, o) ->
