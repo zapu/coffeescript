@@ -1,3 +1,8 @@
+# v1.8.0-e (in progress)
+
+- Close #146: deferral variable with same name as a parameter in outer scope;
+  PR by @yjerem
+
 # v1.8.0-d (2015-03-01)
 
 - Fix autocb for fat arrow functions. Bug report and PR by @davidbau
