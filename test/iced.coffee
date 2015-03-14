@@ -628,6 +628,18 @@ atest 'deferral variable with same name as a parameter in outer scope', (cb) ->
   f 1
   cb(val is 1, {})
 
+atest 'funcname with double quotes is safely emitted', (cb) ->
+  v = 0
+  b = {}
+  
+  f = -> v++
+  b["xyz"] = ->
+    await f defer()
+
+  do b["xyz"]
+
+  cb(v is 1, {})  
+
 # helper to assert that a string should fail compilation
 cantCompile = (code) ->
   throws -> CoffeeScript.compile code
