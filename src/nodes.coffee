@@ -2584,8 +2584,9 @@ quote_path_for_emission = (n) ->
   # paths.  See Issue #84. Thanks to @Deathspike for this patch
   '"' + n.replace(/\\/g, '\\\\') + '"'
 
-remove_quotes = (n) ->
+quote_funcname_for_debug = (n) ->
   # Remove all single and double quotes to make the emitted funcname safe
+  # See issue #144. Thanks to @sidthekidder for this patch.
   '"' + n.replace(/["']/g, '') + '"'
 
 require_top_dir = () ->
@@ -2623,7 +2624,7 @@ exports.Await = class Await extends Base
 
     if n = @parentFunc?.icedTraceName()
       func_lhs = new Value new Literal iced.const.funcname
-      func_rhs = new Value new Literal remove_quotes n
+      func_rhs = new Value new Literal quote_funcname_for_debug n
       func_assignment = new Assign func_lhs, func_rhs, "object"
       assignments.push func_assignment
 

@@ -2,6 +2,9 @@
 
 - Close #146: deferral variable with same name as a parameter in outer scope;
   PR by @yjerem
+- Close #144: Safer quoting of function names in debugging code.
+  PR by @sidthekidder
+- Don't allow jison >= 0.4.14, until we patch up to CS 1.9
 
 ## v1.8.0-d (2015-03-01)
 
