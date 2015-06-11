@@ -23,7 +23,7 @@ Output JS:
 
 ```javascript
 
-function foo (x, cb) { __iced_passed_deferral = iced.findDeferrals(arguments); var it = (function* () {
+function foo (x, cb) { var __iced_passed_deferral = iced.findDeferrals(arguments); var it = (function* () {
 	for (var i = 0; i < x; i++) {
 		(function(it) { var __iced_deferrals = new Deferrals(it, { parent : __iced_passed_deferral });
 			console.log("wait " + i);
