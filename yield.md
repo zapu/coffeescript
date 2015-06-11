@@ -27,7 +27,7 @@ function foo (x, cb) { var __iced_passed_deferral = iced.findDeferrals(arguments
 	for (var i = 0; i < x; i++) {
 		(function(it) { var __iced_deferrals = new Deferrals(it, { parent : __iced_passed_deferral });
 			console.log("wait " + i);
-	    	setTimeout(__iced_deferrals.defer(), i*10); __iced_deferalls.fulfill(); yield false; })(__it); }
+	    	setTimeout(__iced_deferrals.defer(), i*10); __iced_deferalls.fulfill(); })(__it); yield; }
 	cb()
 }
 
