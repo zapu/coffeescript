@@ -505,3 +505,8 @@ LINEBREAKS       = ['TERMINATOR', 'INDENT', 'OUTDENT']
 
 # Tokens that close open calls when they follow a newline.
 CALL_CLOSERS     = ['.', '?.', '::', '?::']
+
+# iced additions
+IMPLICIT_FUNC.push 'DEFER'
+IMPLICIT_CALL.push 'DEFER'
+IMPLICIT_END.push 'AWAIT'

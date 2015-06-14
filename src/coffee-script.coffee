@@ -11,6 +11,9 @@ path          = require 'path'
 helpers       = require './helpers'
 SourceMap     = require './sourcemap'
 
+# Run through the "iced" transform process
+icedTransform = (x, options) -> x.icedTransform options
+
 # The current CoffeeScript version number.
 exports.VERSION = '1.10.0'
 
@@ -53,7 +56,7 @@ exports.compile = compile = withPrettyErrors (code, options) ->
     token[1] for token in tokens when token.variable
   )
 
-  fragments = parser.parse(tokens).compileToFragments options
+  fragments = icedTransform(parser.parse(tokens), options).compileToFragments options
 
   currentLine = 0
   currentLine += 1 if options.header
@@ -99,10 +102,11 @@ exports.tokens = withPrettyErrors (code, options) ->
 # return the AST. You can then compile it by calling `.compile()` on the root,
 # or traverse it by using `.traverseChildren()` with a callback.
 exports.nodes = withPrettyErrors (source, options) ->
-  if typeof source is 'string'
+  nodes = if typeof source is 'string'
     parser.parse lexer.tokenize source, options
   else
     parser.parse source
+  icedTransform(nodes, options)
 
 # Compile and execute a string of CoffeeScript (on the server), correctly
 # setting `__filename`, `__dirname`, and relative `require()`.

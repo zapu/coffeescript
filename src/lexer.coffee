@@ -117,6 +117,10 @@ exports.Lexer = class Lexer
     forcedIdentifier = colon or prev? and
       (prev[0] in ['.', '?.', '::', '?::'] or
       not prev.spaced and prev[0] is '@')
+
+    # IcedCoffeeScript addition
+    forcedIdentifier = false if id is 'defer'
+
     tag = 'IDENTIFIER'
 
     if not forcedIdentifier and (id in JS_KEYWORDS or id in COFFEE_KEYWORDS)
@@ -755,6 +759,9 @@ JS_KEYWORDS = [
 # CoffeeScript-only keywords.
 COFFEE_KEYWORDS = ['undefined', 'then', 'unless', 'until', 'loop', 'of', 'by', 'when']
 
+# IcedCoffeeScript Additions
+COFFEE_KEYWORDS = COFFEE_KEYWORDS.concat [ 'await', 'defer' ]
+
 COFFEE_ALIAS_MAP =
   and  : '&&'
   or   : '||'
@@ -935,3 +942,6 @@ LINE_BREAK = ['INDENT', 'OUTDENT', 'TERMINATOR']
 
 # Additional indent in front of these is ignored.
 INDENTABLE_CLOSERS = [')', '}', ']']
+
+# IcedCoffeeScript Addition
+CALLABLE.push 'DEFER'

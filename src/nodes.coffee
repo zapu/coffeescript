@@ -7,6 +7,7 @@ Error.stackTraceLimit = Infinity
 
 {Scope} = require './scope'
 {RESERVED, STRICT_PROSCRIBED} = require './lexer'
+iced = require 'iced-runtime'
 
 # Import the helpers we plan to use.
 {compact, flatten, extend, merge, del, starts, ends, some,
@@ -148,6 +149,7 @@ exports.Base = class Base
   toString: (idt = '', name = @constructor.name) ->
     tree = '\n' + idt + name
     tree += '?' if @soak
+    tree = @icedToString tree
     @eachChild (node) -> tree += node.toString idt + TAB
     tree
 
@@ -216,6 +218,48 @@ exports.Base = class Base
       if i then answer.push @makeCode joinStr
       answer = answer.concat fragments
     answer
+
+  #------
+  # Begin Iced Additions...
+
+  icedToString : (tree) ->
+    extras = []
+    extras.push "I" if @icedFlag
+    extras = if extras.length then " (" + extras.join('') + ")" else ""
+    tree + extras
+
+  # Don't try this at home with actual human kids.  Added for iced
+  # for slightly different tree traversal mechanics.
+  icedFlattenChildren : ->
+    out = []
+    for attr in @children when @[attr]
+      for child in flatten [@[attr]]
+        out.push (child)
+    out
+
+  # Walk the AST marking functions as being "iced" if they contain at least
+  # one await in the current function. Keep state for this walk in the 'o'
+  # object being passed.
+  #
+  # Relevant fields:
+  #   - members of the various AST nodes:
+  #       - icedFlag -- true if this node is an await or one of the await's
+  #          ancestors in the AST.
+  #       - icedParentAwait -- for defer()'s, the parent Await block
+  #       - icedParentFunc -- for await's, the parent function
+  #   - members of the `o` traversal object:
+  #       - await -- the await block we descend from (or null)
+  #       - func -- the function we descend from (or null)
+  #       - awaitInFunc -- whether we've found an await block in this function
+  #       - awaitInFile -- whether we've found an await block in this file
+  #       - deferInFile -- on if a defer was found anywhere in the file
+  #
+  icedWalkAst : (o) ->
+    for child in @icedFlattenChildren()
+      child.icedWalkAst o
+
+  # End Iced Additions...
+  #------
 
 #### Block
 
@@ -377,6 +421,33 @@ exports.Block = class Block extends Base
   @wrap: (nodes) ->
     return nodes[0] if nodes.length is 1 and nodes[0] instanceof Block
     new Block nodes
+
+  #--------------------
+  # begin Iced Additions
+
+  # Paste in a require or inline code, depending on the strategy requested
+  icedAddRuntime : (deferInFile, awaitInFile) ->
+    index = 0
+    while (node = @expressions[index]) and node instanceof Comment or
+        node instanceof Value and node.isString()
+      index++
+    @expressions.splice index, 0, (new IcedRuntime deferInFile, awaitInFile)
+
+  icedTransform : (opts) ->
+    obj = {}
+    @icedWalkAst obj
+
+    # Add a runtime if necessary, but don't add a runtime for the REPL.
+    # For some reason, even outputting an empty runtime doesn't work as far as the
+    # REPL is concerned.
+    if not opts?.repl and (obj.deferInFile or obj.awaitInFile or opts.runforce)
+      @icedAddRuntime obj.deferInFile, obj.awaitInFile
+
+    # return this for chaining
+    @
+
+  # end Iced Additions
+  #--------------------
 
 #### Literal
 
@@ -579,6 +650,27 @@ exports.Value = class Value extends Base
         return new If new Existence(fst), snd, soak: on
       no
 
+  # If this value is being used as a slot for the purposes of a defer
+  # then export it here
+  icedToSlot : (i) ->
+    return @base.icedToSlot i if @base instanceof Obj
+    sufffix = null
+    if @properties and @properties.length
+      suffix = @properties.pop()
+    return new Slot i, this, suffix
+
+  icedToSlotAccess : () ->
+    # See bug #78 in the ICS repository. We're concerned about this case:
+    #    await foo defer { @x }
+    # In this situation, `@x` will be represented as a value with the `this`
+    # property set to `true`, and properties[0] will have the name of the
+    # dictionary key that's needed (already as an `Access` instance)
+    if @this then @properties[0]
+    else new Access @
+
+  # Minor iced addition for convenience
+  copy : -> new Value @base, @properties
+
 #### Comment
 
 # CoffeeScript passes through block comments as JavaScript block comments
@@ -645,8 +737,10 @@ exports.Call = class Call extends Base
 
   # The appropriate `this` value for a `super` call.
   superThis : (o) ->
-    method = o.scope.method
-    (method and not method.klass and method.context) or "this"
+    if o.scope.icedgen then "_this"
+    else
+      method = o.scope.method
+      (method and not method.klass and method.context) or "this"
 
   # Soaked chained invocations unfold into if/else ternary structures.
   unfoldSoak: (o) ->
@@ -988,6 +1082,14 @@ exports.Obj = class Obj extends Base
   assigns: (name) ->
     for prop in @properties when prop.assigns name then return yes
     no
+
+  icedToSlot : (i) ->
+    for prop in @properties
+      if prop instanceof Assign
+        (prop.value.icedToSlot i).addAccess prop.variable.icedToSlotAccess()
+      else if prop instanceof Value
+        access = prop.icedToSlotAccess()
+        (prop.icedToSlot i).addAccess access
 
 #### Arr
 
@@ -1388,7 +1490,8 @@ exports.Code = class Code extends Base
   constructor: (params, body, tag) ->
     @params      = params or []
     @body        = body or new Block
-    @bound       = tag is 'boundfunc'
+    @icedgen     = tag is 'icedgen'
+    @bound       = tag is 'boundfunc' or @icedgen
     @isGenerator = !!@body.contains (node) ->
       (node instanceof Op and node.isYield()) or node instanceof YieldReturn
 
@@ -1410,6 +1513,9 @@ exports.Code = class Code extends Base
     if @bound and o.scope.method?.bound
       @context = o.scope.method.context
 
+    # Handle iced functions early
+    @icedTransform() if @icedFlag
+
     # Handle bound functions early.
     if @bound and not @context
       @context = '_this'
@@ -1419,12 +1525,14 @@ exports.Code = class Code extends Base
       return boundfunc.compileNode(o)
 
     o.scope         = del(o, 'classScope') or @makeScope o.scope
-    o.scope.shared  = del(o, 'sharedScope')
+    o.scope.shared  = del(o, 'sharedScope') or @icedgen
+    o.scope.icedgen = @icedgen
     o.indent        += TAB
     delete o.bare
     delete o.isExistentialEquals
     params = []
     exprs  = []
+
     for param in @params when param not instanceof Expansion
       o.scope.parameter param.asReference o
     for param in @params when param.splat or param instanceof Expansion
@@ -1465,6 +1573,7 @@ exports.Code = class Code extends Base
       if i then answer.push @makeCode ", "
       answer.push p...
     answer.push @makeCode ') {'
+
     answer = answer.concat(@makeCode("\n"), @body.compileWithDeclarations(o), @makeCode("\n#{@tab}")) unless @body.isEmpty()
     answer.push @makeCode '}'
 
@@ -1478,6 +1587,63 @@ exports.Code = class Code extends Base
   # unless `crossScope` is `true`.
   traverseChildren: (crossScope, func) ->
     super(crossScope, func) if crossScope
+
+  #----------
+  # IcedCoffeeScript Additions
+
+  icedTransform : () ->
+
+    # Error condition of generators + await, which don't mix
+    @error "Methods with `await` cannot be generators" if @isGenerator
+
+    # the outer function must be bound to properly capture this.
+    @bound = true
+
+    # Don't do the same operation the next time through
+    @icedFlag = false
+
+    @icedPassedDeferral = new Value new Literal iced.const.passed_deferral
+    @icedIterator = new Value new Literal iced.const.iterator
+
+    body = []
+
+    # var __iced_passed_deferral = iced.findDeferral(arguments)
+    f = new Value new Literal iced.const.ns
+    f.add new Access new Value new Literal iced.const.findDeferral
+    rhs = new Call f, [ new Value new Literal 'arguments' ]
+    body.push(new Assign @icedPassedDeferral, rhs)
+
+    # var __it = (function* (_this) {  [ @body ]} )(this);
+    code = new Code [], (new Block [ @body ]), 'icedgen'
+    code.isGenerator = true
+    rhs = new Call code, []
+    body.push(new Assign @icedIterator, rhs)
+
+    # __it.next();
+    nxt = @icedIterator.copy()
+    nxt.add new Access new Value new Literal "next"
+    call = new Call nxt, []
+    body.push call
+
+    @body = Block.wrap(body)
+
+  icedWalkAst : (o) ->
+    # Replace context for new function scope.
+    o_new = { func : @ }
+    super o_new
+    o.awaitInFile = o.awaitInFile or o_new.awaitInFile
+    o.deferInFile = o.deferInFile or o_new.deferInFile
+    @icedFlag = o_new.awaitInFunc
+    @
+
+  icedTraceName : ->
+    parts = []
+    parts.push n if (n = @klass?.base?.value)?
+    parts.push n if (n = @name?.name?.value)?
+    parts.join '.'
+
+  # /IcedCoffeeScript Additions
+  #----------
 
 #### Param
 
@@ -1600,6 +1766,9 @@ exports.Splat = class Splat extends Base
     concatPart = list[index].joinFragmentArrays args, ', '
     [..., last] = list
     [].concat list[0].makeCode("["), base, list[index].makeCode("].concat("), concatPart, last.makeCode(")")
+
+  icedToSlot: (i) ->
+    new Slot(i, new Value(@name), null, true)
 
 #### Expansion
 
@@ -1900,6 +2069,298 @@ exports.In = class In extends Base
 
   toString: (idt) ->
     super idt, @constructor.name + if @negated then '!' else ''
+
+#### Begin Iced Additions
+
+
+#### Slot
+#
+#  A Slot is an argument passed to `defer(..)`.  It's a bit different
+#  from a normal parameters, since it's trying to implement pass-by-reference.
+#  It's used only in concert with the Defer class.  Splats and Values
+#  can be converted to slots with the `icedToSlot` method.
+#
+exports.Slot = class Slot extends Base
+  constructor : (index, value, suffix, splat) ->
+    super()
+    @index = index
+    @value = value
+    @suffix = suffix
+    @splat = splat
+    @access = null
+
+  addAccess : (a) ->
+    @access = a
+    this
+
+  children : [ 'value', 'suffix' ]
+
+#### Defer
+
+exports.Defer = class Defer extends Base
+  constructor : (args, @lineno) ->
+    super()
+    @slots = flatten (a.icedToSlot i for a,i in args)
+    @params = []
+    @vars = []
+    @custom = false
+
+  children : ['slots' ]
+
+  # Most deferrals are not "custom", meaning they assume
+  # __iced_deferrals as a `this` object.  Rendezvous and others
+  # are custom, since there is an object that's acting as `this`
+  setCustom : () ->
+    @custom = true
+    @
+
+  # Count hidden parameters up from 1.  Make a note of which parameter
+  # we passed out.  Return a copy of that parameter, in case we mutate
+  # it later before we output it.
+  newParam : ->
+    l = "#{iced.const.slot}_#{@params.length + 1}"
+    @params.push new Param new Literal l
+    new Value new Literal l
+
+  #
+  # makeAssignFn
+  #   - Implement C++-style pass-by-reference in Coffee
+  #
+  # the 'assign_fn' returned by here will set all parameters to defer()
+  # to have the appropriate values after the defer is fulfilled. The
+  # four cases to consider are listed in the following call:
+  #
+  #     defer(x, a.b, c.d[i], rest...)
+  #
+  # Case 1 -- defer(x) --  Regular assignment to a local variable
+  # Case 2 -- defer(a.b) --  Assignment to an object; must capture
+  #    object when defer() is called
+  # Case 3 -- defer(c.d[i]) --  Assignment to an array slot; must capture
+  #   array and slot index with defer() is called
+  # Case 4 -- defer(rest...) -- rest is an array, assign it to all
+  #   leftover arguments.
+  #
+  makeAssignFn : (o) ->
+    return null if @slots.length is 0
+    assignments = []
+    args = []
+    i = 0
+    for s in @slots
+      i = s.index
+      a = new Value new Literal "arguments"
+      i_lit = new Value new Literal i
+      if s.splat # case 4
+        func = new Value new Literal(utility 'slice', o)
+        func.add new Access new Value new Literal 'call'
+        call = new Call func, [ a, i_lit ]
+        slot = s.value
+        @vars.push slot
+        assign = new Assign slot, call
+      else
+        a.add new Index i_lit
+        if s.access
+          a.add s.access
+        if not s.suffix # case 1
+          slot = s.value
+          @vars.push slot
+        else
+          args.push s.value
+          slot = @newParam()
+          if s.suffix instanceof Index # case 3
+            prop = new Index @newParam()
+            args.push s.suffix.index
+          else # case 2
+            prop = s.suffix
+          slot.add prop
+        assign = new Assign slot, a
+      assignments.push assign
+
+    block = new Block assignments
+    inner_fn = new Code [], block, 'icedgen'
+    outer_block = new Block [ new Return inner_fn ]
+    outer_fn = new Code @params, outer_block, 'icedgen'
+    call = new Call outer_fn, args
+
+  transform : (o) ->
+    meth = new Value new Literal iced.const.defer_method
+
+    # In the custom case, there's a foo.defer, and we're going to
+    # use the `foo` as the this object.  Otherwise, we'll
+    # use the `__iced_deferrals` in the current scope as the `this` object
+    if @custom
+      fn = meth
+    else if (parent = @icedParentAwait)?
+      fn = parent.icedDeferrals.copy()
+      # now, fn is '__iced_deferrals.defer'
+      fn.add new Access meth
+    else
+      @error "defer() without parent await or Rendezvous"
+
+
+    # There is one argument to Deferrals.defer(), which is a dictionary.
+    # The dictionary currently only has one slot: assign_fn, which
+    #   indicates a function.
+    # More slots will be needed if we ever want to keep track of iced-aware
+    #   stack traces.
+    assignments = []
+    if (assign_fn = @makeAssignFn o)
+      assignments.push new Assign(new Value(new Literal(iced.const.assign_fn)),
+                                  assign_fn, "object")
+    ln_lhs = new Value new Literal iced.const.lineno
+    ln_rhs = new Value new Literal @lineno
+    ln_assign = new Assign ln_lhs, ln_rhs, "object"
+    assignments.push ln_assign
+    if @custom
+      context_lhs = new Value new Literal iced.const.context
+      context_rhs = new Value new Literal iced.const.deferrals
+      context_assign = new Assign context_lhs, context_rhs, "object"
+      assignments.push context_assign
+    o = new Obj assignments
+
+    # Return the final call
+    new Call fn, [ new Value o ]
+
+  compileNode : (o) ->
+    call = @transform o
+    for v in @vars
+      name = v.compile o, LEVEL_LIST
+      scope = o.scope
+      scope.find name, 'var'
+    call.compileNode o
+
+  icedWalkAst : (o) ->
+    super o
+    o.deferInFile = true
+    @icedParentAwait = o.await
+
+quote_funcname_for_debug = (n) ->
+  # Remove all single and double quotes to make the emitted funcname safe
+  # See issue #144. Thanks to @sidthekidder for this patch.
+  '"' + n.replace(/["']/g, '') + '"'
+
+quote_path_for_emission = (n) ->
+  # Replace '\' with '\\' to make the emitted code safe for Windows
+  # paths.  See Issue #84. Thanks to @Deathspike for this patch
+  '"' + n.replace(/\\/g, '\\\\') + '"'
+
+require_top_dir = () ->
+  # See #139, need to use window-safe pathname quoting for requring
+  # the top current directory. Windows!
+  quote_path_for_emission(pathmod.join __dirname, "..", "..")
+
+#### Await
+
+exports.Await = class Await extends Base
+  constructor : (@body) ->
+    super()
+
+  transform : (o) ->
+    body = @body
+
+    name = o.scope.freeVariable iced.const.deferrals
+    @icedDeferrals = lhs = new Value new Literal name
+    cls = new Value new Literal iced.const.ns
+    cls.add(new Access(new Value new Literal iced.const.Deferrals))
+
+    assignments = []
+    if n = @icedParentFunc?.icedPassedDeferral
+      cb_lhs = new Value new Literal iced.const.parent
+      cb_rhs = n
+      cb_assignment = new Assign cb_lhs, cb_rhs, "object"
+      assignments.push cb_assignment
+
+    if n = @icedParentFunc?.icedTraceName()
+      func_lhs = new Value new Literal iced.const.funcname
+      func_rhs = new Value new Literal quote_funcname_for_debug n
+      func_assignment = new Assign func_lhs, func_rhs, "object"
+      assignments.push func_assignment
+
+    # { parent : __iced_passed_deferrals, funcname : foo }
+    trace = new Obj assignments, true
+
+    # var __iced_deferrals_1 = new iced.Deferrals(__it, { parent : __iced_passed_deferrals, funcname : foo })
+    call = new Call cls, [ @icedParentFunc.icedIterator, trace ]
+    rhs = new Op "new", call
+    assign = new Assign lhs, rhs
+    body.unshift assign
+
+    # if (__iced_deferrals_1.await_exit()) { yield; }
+    meth = lhs.copy().add new Access new Value new Literal iced.const.await_exit
+    body.push new If (new Call meth, []), (new Block [ new Literal 'yield'])
+
+    body
+
+  children: ['body']
+
+  isStatement: -> YES
+  makeReturn : THIS
+
+  compileNode: (o) ->
+    @transform(o).compileNode o
+
+  icedWalkAst : (o) ->
+    @error "Can't have nested await blocks" if o.await?
+    o.await = @
+    super o
+    o.await = null
+    # Pass these messages back up
+    o.awaitInFile = o.awaitInFunc = true
+    @icedParentFunc = o.func
+
+#### IcedRuntime
+#
+# By default, the iced libraries are require'd via nodejs' require.
+# You can change this behavior on the command line:
+#
+#    -I inline --- inlines a simplified runtime to the output file
+#    -I node   --- force node.js inclusion
+#    -I window --- attach the inlined runtime to the window.* object
+#    -I none   --- no inclusion, do it yourself...
+#
+class IcedRuntime extends Block
+  constructor: (@foundDefer, @foundAwait) ->
+    super()
+
+  compileNode: (o, level) ->
+    @expressions = []
+
+    v = if o.runtime    then o.runtime
+    else if o.bare      then "none"
+    else if @foundDefer then "node"
+    else                     "none"
+
+    if o.runtime and not @foundDefer and not o.runforce
+      v = "none"
+
+    window_mode = false
+    window_val = null
+
+    inc = null
+    inc = switch (v)
+      when "inline", "window"
+        window_mode = true if v is "window"
+        if window_mode
+          window_val = new Value new Literal v
+        InlineRuntime.generate(if window_val then window_val.copy() else null)
+      when "node", "browserify", "interp"
+        interp = (v is "interp")
+        qmodname = if interp then require_top_dir() else "'iced-runtime'"
+        accessname = iced.const.ns
+        file = new Literal qmodname
+        access = new Access new Literal accessname
+        req = new Value new Literal "require"
+        call = new Call req, [ file ]
+        callv = new Value call
+        callv.add access if interp
+        ns = new Value new Literal iced.const.ns
+        new Assign ns, callv
+      when "none" then null
+      else throw SyntaxError "unexpected flag IcedRuntime #{v}"
+
+    @push inc if inc
+
+    if @isEmpty() then []
+    else               super o
 
 #### Try
 
