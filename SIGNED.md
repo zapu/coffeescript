@@ -3,19 +3,19 @@
 -----BEGIN PGP SIGNATURE-----
 Comment: GPGTools - https://gpgtools.org
 
-iQIcBAABCgAGBQJVeietAAoJEGBSsq0xpmMcOusQAKXvAUbE5AmMSvr3sn9W49sl
-g8V4WcQ0AYTxmrh/Blh+M13f9FthXTO15+JEVytx26j3paQouAuaVEfY2FGl+9jH
-kjcerccOzEzMf27fuPwrAxJ5SZM5JuCI9Y3N9ck7bbGKmEabwIUyvfsosxFT/wVL
-K2NKFyfuuiFbSS5nwE3ZErJpqp9zjeMk9v6Gg5lN+28LUmOg8TaXG2zP3qd0U3p7
-YnIm85Pmq1KN8UDgMZK1zFpKHOTFEsbVYGADIrwi8+QwQvlBi4auHIbYHI/wwMWy
-Tu5oZq2O3PgOOiA+N4L9NVjZeX9VDF9nz+uJqeXkKcngcf0+GNZAIKidaNvMNqxy
-JxB5P817/Yzd+wHY9C1jc00kgnPo5uf3qBOnxiKtJaiZCs9euTNuFQBe4xtFZlNJ
-JfjkBR+19fshoZxSPzSS/PTHQRMYPbyKTAy5QRPVvLqUXnv6/RR6vkKgrnkhEI2m
-7A0ZbJs2PnJjoGrJIzDItoyPP2gbcYNNNt3sLrz7wmnYutunIUlwQTPlknEHtoW0
-w1V+vhs0oufutc4vyvb9ddj1fhZboYd/dVhmYAfpGBV76nEKdnnJp0VXPOEDjm3E
-06rESjeB1QXagTQ/HkmUXA4ouzQfKmz20xkxtklkR9vpUoSAOunA7pzC6UV7a1HF
-CIAs75NXt8aiScwS6gIp
-=dwCX
+iQIcBAABCgAGBQJVoqR4AAoJEGBSsq0xpmMcWNQQAIndY7aufF/FLgK71c+pifs7
+1EM9DGedzz9rDrSg6yOleqzTWuh9AmCvAHphfcqx8D0yzj7mM+VhiipHMyxwu3pd
+U+upABftM4toc22RR7aCDCQgq6PR/nQyUqCwgLjTzkm+xtf7zjRsXRBMGjmg77kZ
+4JppKOBNl5l1mHBQbRaKTjRkk6uS5cXnLkaqlGNd3RFD7FBvpPMHkIUBg5Kigv2x
+6AhTbH53eNs6yRrnqloJuWyYFZrA1D+zS2b/OAQFoU1EBNUi6mkPtrRLu1/BBLNo
+d3TeUVEAO7NvRL4GquHGL/1BPECRb7SObhk7Dvwqepj2skKJVdjcBAQuNvHwdA0k
++/p6KXTVH/MFdEavqtTrAuR2J0326sLatAnKBjU84ztY6DDgSfCiWJFvzD8xo2/x
+zO49A4vvxfZAhUCxMQgYgvSLfE35fC5xavAZry6+Ma6DyHV1l1ccGS4TtB0UuDge
+KowrSEh3+l5+ZhffuGMU//Gc0Mn9WCkhzb2ehbH25jQw5Wu0+IruCyNUNS8nxEvn
+Z7E35s9TektvU17uTAXkEclu+h8JSV+/hWJ388yjM1QxS5oQfnh4zPTcYsstyPv/
+NrQ4ia5MHB9jtU9AJRcn8G7Nwno+92lft2K6N00ZgEo4u3j7CV3e6vr9vQ4s1CUZ
+lJL22qhFN3mLQMDkxh95
+=MFbh
 -----END PGP SIGNATURE-----
 
 ```
@@ -31,7 +31,7 @@ size    exec  file                                     contents
               ./                                                                                                                                                                        
 150             .gitignore                             6638ebd299344c76a54d74ec041422b2c54cbdb940c9124491088311df780551                                                                 
 97              .npmignore                             785ab9aa5eacc50b7d8a01051820335d1d38151e0f101bccdd60af055be2d5d5                                                                 
-2058            CHANGELOG.md                           1c16dc21b77a4afdb21e10ffb0fe4b35a83c1c3ebeeedfbc73444d75871bf453                                                                 
+2259            CHANGELOG.md                           90dc1848204e0533accc91dfaedd4a4eaed7f5d87824808f1e78b7031f5cb803                                                                 
 21              CNAME                                  c0b589d1166bab7b26c1167db2dba2f8e920f303af4bce28ace28dd1b38964a7                                                                 
 805             CONTRIBUTING.md                        3cf82f530cc4500a2285431bd2e4a4a75180f12ef828d5a387b55081bd8e15db                                                                 
 11577           Cakefile                               62d491509fcc2e13a6ea184ee80a8732e154119a4e964dad38419601232653bf                                                                 
@@ -177,6 +177,10 @@ size    exec  file                                     contents
 396                 while.js                           948865edbc995e6bbfcf7eb7a4131d9de0184cc38b45a20bcd68504a5545ac77                                                                 
                   vendor/                                                                                                                                                               
 238159              jquery-1.6.4.js                    54964f8b580ad795a962fb27066715d3281ae1ad13a28bf8aedd5d8859ebae37                                                                 
+                es6impl/                                                                                                                                                                
+557               test.iced                            2086b76f75e1b94c6b398857ee6bdd2f3dc6ce3f0989bb96a3203680a7d7e351                                                                 
+1305              test.js                              4067af9020e88107992a3e31f670eae7ba4a4951f4c40a121925dd4b110a8e69                                                                 
+781               yield.md                             e95cbd063d924b2a4c699a91839285d9a703eda78e346b4252b1b163d53f48df                                                                 
                 examples/                                                                                                                                                               
                   beautiful_code/                                                                                                                                                       
 523                 binary_search.coffee               5807bd90f920446e1b0479ebd7f49403d139cbab5f6f8a5ed78e4247f7afe1ec                                                                 
@@ -241,7 +245,7 @@ size    exec  file                                     contents
 149621            rotate4.png                          d404c8cee351ed5f539f049f4562e3120b30808e40ac7b59124c54b44802167c|93a7beb6d9ff1ce889dadacc4669ccc816dcf44a19839f11420a310c12b68b43
 74346             rotate5.png                          e96297c69a6cff2e6b50d204661dcd0d575b14ee0a6bd0f0ef6b8d2db64c869c|1f05f6c987e593017ffc9d8ff16d445d065132edfb17681f10d319a56086d79b
 99754             sketch.pdf                           a146828ee936efb7145f9d194eb4050cea6cee5a1947dd6d84cd96c32344668a|d13a97bb4cb86abb8b529b019fc0de297e2d1bd89ccce89f7fc80fb9f90672c9
-1089            package.json                           7c60839bbf28966f5762a53e5e23d6865a8f6b429eba3058a0ea52e40b638f25                                                                 
+1089            package.json                           42ffc332d280ad24f2871fdb60281a9f4a0aceb83d295342b181a275cc775bf2                                                                 
 41              register.js                            df03872cd6b8842e3bc485215ec78670a2aac9b639f1ae76171cca0afb90daef                                                                 
 54              repl.js                                799ad79ee7f89a3c783ebb0a2336012ce704a37ebf7e62de6d0b82cd2dd3f09c                                                                 
                 src/                                                                                                                                                                    
@@ -314,7 +318,6 @@ size    exec  file                                     contents
 5325              strict.coffee                        18431d8d919fa96cc33f17d55513a1a4006faa76fbe09e0bf87706c193072933                                                                 
 5472              strings.coffee                       11d7585bb40ae99e2ff7f81e03e5840518e58cd80c78e9d800cd69494b223771                                                                 
 2450              test.html                            ba599d5e66b1df7787fb2fbbe98fb4309b49ee09b836308e5792d46b8fb133b4                                                                 
-781             yield.md                               e95cbd063d924b2a4c699a91839285d9a703eda78e346b4252b1b163d53f48df                                                                 
 ```
 
 #### Ignore
