@@ -1,3 +1,9 @@
+## v108.0.6 (2015-07-11)
+
+- Introduce a new versioning system to satisfy new npm (v2.11.x):
+  - If CoffeeScript was a.b.c, and we're at ICS patch d, then release
+    under x.c.d, where x = (100*a+b).
+
 ## v1.8.0-e (2015-06-11)
 
 - Close #146: deferral variable with same name as a parameter in outer scope;
