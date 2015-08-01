@@ -107,13 +107,7 @@ Return the list of variables first declared in this scope.
         realVars = []
         tempVars = []
 
-An unfortunate iced hack, needed to get __iced_k to show up in the variable
-list and be a parameter for functions in the shared iced scope.  See test case
-'autocb + wait + scoping problems' in test.iced for an example where this is
-needed.
-
-        for v in @variables when ((v.type is 'var') or
-                (v.type is 'param' and v.name is iced.const.k))
+        for v in @variables when (v.type is 'var')
           (if v.name.charAt(0) is '_' then tempVars else realVars).push v.name
         realVars.sort().concat tempVars.sort()
 

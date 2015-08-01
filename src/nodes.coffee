@@ -2092,28 +2092,15 @@ exports.While = class While extends Base
   icedWrap : (d) ->
     condition = d.condition
     body = d.body
-    rvar = d.rvar
     outStatements = []
-
-    if rvar
-      rvar_value = new Value new Literal rvar
 
     # Set up all of the IDs
     top_id = new Value new Literal iced.const.t_while
     k_id = new Value new Literal iced.const.k
     k_param = new Param new Literal iced.const.k
 
-    # Break will just call the parent continuation, but in some
-    # cases, there will be a return value, so then we have to pass
-    # that back out.  Hence the split below:
     break_id = new Value new Literal iced.const.b_while
-    if rvar
-      break_expr = new Call k_id, [ rvar_value ]
-      break_block = new Block [ break_expr ]
-      break_body = new Code [], break_block, 'icedgen'
-      break_assign = new Assign break_id, break_body, null, { icedlocal : yes }
-    else
-      break_assign = new Assign break_id, k_id, null, { icedlocal : yes }
+    break_assign = new Assign break_id, k_id, null, { icedlocal : yes }
 
     # The continue assignment is the increment at the end
     # of the loop (if it's there), and also the recursive
@@ -2131,17 +2118,7 @@ exports.While = class While extends Base
     # Next is like continue, but it also squirrels away the return
     # value, if required!
     next_id = new Value new Literal iced.const.n_while
-    if rvar
-      next_arg = new Param new Literal iced.const.n_arg
-      f = rvar_value.copy()
-      f.add new Access new Value new Literal 'push'
-      call1 = new Call f, [ next_arg ]
-      call2 = new Call continue_id, []
-      next_block = new Block [ call1, call2 ]
-      next_body = new Code [ next_arg ], next_block, 'icedgen'
-      next_assign = new Assign next_id, next_body, null, { icedlocal : yes }
-    else
-      next_assign = new Assign next_id, continue_id
+    next_assign = new Assign next_id, continue_id
 
     # The whole body is wrapped in an if, with the positive
     # condition being the loop, and the negative condition
@@ -2162,9 +2139,6 @@ exports.While = class While extends Base
     top_call = new Call top_id, [ k_id ]
     top_statements = []
     top_statements = top_statements.concat d.init if d.init
-    if rvar
-      rvar_init = new Assign rvar_value, new Arr
-      top_statements.push rvar_init
     top_statements = top_statements.concat [ top_assign, top_call ]
     top_block = new Block top_statements
 
@@ -2173,8 +2147,6 @@ exports.While = class While extends Base
 
   icedCompileIced: (o) ->
     opts = { @condition, @body, @guard }
-    if @returns
-      opts.rvar = o.scope.freeVariable 'results'
     b = @icedWrap opts
     return b.compileNode o
 
@@ -2907,7 +2879,7 @@ exports.For = class For extends While
 
     source.icedStatementAssertion()
 
-    return @icedCompileIced(o, { stepVar, body, rvar, kvar, @guard }) if @icedNodeFlag
+    return @icedCompileIced(o, { stepVar, body, kvar, @guard }) if @icedNodeFlag
 
     if @range
       forPartFragments = source.compileToFragments merge(o, {index: ivar, name, @step})
@@ -3091,9 +3063,8 @@ exports.For = class For extends While
       a4 = new Assign @name, ref_val_copy
       pre_body.unshift a4
 
-    rvar = d.rvar
     guard = d.guard
-    b = @icedWrap { condition, body, init, step, rvar, guard, pre_body }
+    b = @icedWrap { condition, body, init, step, guard, pre_body }
     b.compileNode o
 
 #### Switch
