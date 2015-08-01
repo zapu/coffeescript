@@ -1,3 +1,8 @@
+## v108.0.7 (2015-08-01)
+
+- Strip out return value-accumulation from iced loops
+- Merge Pull #159 (https://github.com/maxtaco/coffee-script/pull/159)
+
 ## v108.0.6 (2015-07-11)
 
 - Introduce a new versioning system to satisfy new npm (v2.11.x):
