@@ -92,9 +92,12 @@ exports.tokens = withPrettyErrors (code, options) ->
 # or traverse it by using `.traverseChildren()` with a callback.
 exports.nodes = withPrettyErrors (source, options) ->
   if typeof source is 'string'
-    iced_transform(parser.parse(lexer.tokenize(source, options)), options)
+    ast = parser.parse(lexer.tokenize(source, options))
   else
-    iced_transform(parser.parse(source),options)
+    ast = parser.parse(source)
+
+  ast = iced_transform(ast, options) unless options.noIcedTransform
+  ast
 
 # Compile and execute a string of CoffeeScript (on the server), correctly
 # setting `__filename`, `__dirname`, and relative `require()`.
