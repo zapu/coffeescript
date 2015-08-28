@@ -2118,7 +2118,7 @@ exports.While = class While extends Base
     # Next is like continue, but it also squirrels away the return
     # value, if required!
     next_id = new Value new Literal iced.const.n_while
-    next_assign = new Assign next_id, continue_id
+    next_assign = new Assign next_id, continue_id, null, { icedlocal : yes }
 
     # The whole body is wrapped in an if, with the positive
     # condition being the loop, and the negative condition

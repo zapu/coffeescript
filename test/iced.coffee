@@ -3,6 +3,17 @@ delay = (cb, i) ->
    i = i || 3
    setTimeout cb, i
 
+atest "nested of/in loop", (cb) ->
+  counter = 0
+  bar = () ->
+    if counter++ > 100
+      throw new Error "infinite loop found"
+  for a,b of { foo : 1 }
+    for v, i in [0,1]
+      await delay defer()
+    bar()
+  cb true, {}
+
 atest "basic iced waiting", (cb) ->
    i = 1
    await delay defer()
@@ -590,7 +601,7 @@ atest 'defer + class member assignments', (cb) ->
     cb 3, { y : 4, z : 5}
   class MyClass2
     f : (cb) ->
-      await myfn defer @x, { @y , z } 
+      await myfn defer @x, { @y , z }
       cb z
   c = new MyClass2()
   await c.f defer z
@@ -612,14 +623,14 @@ atest 'deferral variable with same name as a parameter in outer scope', (cb) ->
 atest 'funcname with double quotes is safely emitted', (cb) ->
   v = 0
   b = {}
-  
+
   f = -> v++
   b["xyz"] = ->
     await f defer()
 
   do b["xyz"]
 
-  cb(v is 1, {})  
+  cb(v is 1, {})
 
 # helper to assert that a string should fail compilation
 cantCompile = (code) ->

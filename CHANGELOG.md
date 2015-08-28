@@ -1,3 +1,7 @@
+## v108.0.8 (2015-08-27)
+
+- Bugfix: unbreak nested forloops, which confused _next() due to a scope problem
+
 ## v108.0.7 (2015-08-01)
 
 - Strip out return value-accumulation from iced loops
