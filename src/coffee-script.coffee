@@ -14,7 +14,7 @@ iced_transform = require('./iced').transform
 iced_runtime   = require 'iced-runtime'
 
 # The current CoffeeScript version number.
-exports.VERSION = '1.8.0-e'
+exports.VERSION = '108.0.7'
 
 exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced', '.liticed', '.iced.md']
 
@@ -92,9 +92,12 @@ exports.tokens = withPrettyErrors (code, options) ->
 # or traverse it by using `.traverseChildren()` with a callback.
 exports.nodes = withPrettyErrors (source, options) ->
   if typeof source is 'string'
-    iced_transform(parser.parse(lexer.tokenize(source, options)), options)
+    ast = parser.parse(lexer.tokenize(source, options))
   else
-    iced_transform(parser.parse(source),options)
+    ast = parser.parse(source)
+
+  ast = iced_transform(ast, options) unless options.noIcedTransform
+  ast
 
 # Compile and execute a string of CoffeeScript (on the server), correctly
 # setting `__filename`, `__dirname`, and relative `require()`.
