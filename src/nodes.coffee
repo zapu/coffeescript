@@ -3039,9 +3039,9 @@ exports.For = class For extends While
       # Init statements
       init = [
         new Assign(@name, @source.base.from)
-        new Assign(begin, @source.base.from)
-        new Assign(end, @source.base.to)
-        new Assign(positive, new Op ">", end, begin)
+        new Assign(begin, @source.base.from, null, { icedlocal : true })
+        new Assign(end, @source.base.to, null, { icedlocal : true })
+        new Assign(positive, (new Op ">", end, begin), null, { icedlocal : true } )
       ]
 
     # Handle the case of 'for i,blah in arr'

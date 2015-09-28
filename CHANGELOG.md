@@ -1,3 +1,7 @@
+## v108.0.9
+
+- Bugfix: unbreak nested forloops with _positive not scoped properly, reported by @jfgorski
+
 ## v108.0.8 (2015-08-27)
 
 - Bugfix: unbreak nested forloops, which confused _next() due to a scope problem
