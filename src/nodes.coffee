@@ -3026,10 +3026,20 @@ exports.For = class For extends While
       begin = new Value new Literal "_begin"
       end = new Value new Literal "_end"
       positive = new Value new Literal "_positive"
+      stepVal = new Value new Literal "_step"
+
       # Calculate stepping
-      stepVal = @step or new Literal 1
-      step = new If positive, new Op("+=", @name, stepVal)
-      step.addElse new Op("-=", @name, stepVal)
+      if @step
+        a_stepVal = new Assign stepVal, @step
+        a_positive = new Assign positive, (new Op ">", stepVal, new Literal 0), null, { icedlocal : true }
+      else
+        is_positive = (new Op ">", end, begin)
+        a_stepVal = new If is_positive, new Assign stepVal, new Literal 1
+        a_stepVal.addElse new Assign stepVal, new Literal -1
+        a_positive = new Assign positive, is_positive, null, { icedlocal : true }
+
+      step = new Op '+=', @name, stepVal
+
       # Calculate break condition
       excl = if @source.base.exclusive then "=" else ''
       pos = new Op "&&", new Op("===", positive, new Literal true), new Op(">#{excl}", @name, @source.base.to)
@@ -3041,7 +3051,8 @@ exports.For = class For extends While
         new Assign(@name, @source.base.from)
         new Assign(begin, @source.base.from, null, { icedlocal : true })
         new Assign(end, @source.base.to, null, { icedlocal : true })
-        new Assign(positive, (new Op ">", end, begin), null, { icedlocal : true } )
+        a_stepVal,
+        a_positive,
       ]
 
     # Handle the case of 'for i,blah in arr'
@@ -3054,10 +3065,51 @@ exports.For = class For extends While
       a1 = new Assign ref_val, @source
       len_rhs = ref_val.copy().add new Access new Value new Literal "length"
       a2 = new Assign len_val, len_rhs
-      a3 = new Assign kval, new Value new Literal 0
-      init = [ a1, a2, a3 ]
-      condition = new Op '<', kval, len_val
-      step = new Op '++', kval
+
+      # Handle non-trival stepVars (negative strides etc.)
+      # - Issue #162
+
+      init = [ a1, a2 ]
+
+      if not @step
+        # No step provided, it's 1 by default
+        a3 = new Assign kval, new Literal 0
+
+        step = new Op '++', kval
+        condition = new Op '<', kval, len_val
+
+        init.push a3
+      else
+        # Check if step is a literal number
+        [_, stepVar] = @cacheToCodeFragments @step.cache o, LEVEL_LIST
+        stepNum = stepVar.match NUMBER
+
+        if stepNum
+          step = new Assign kval, new Op '+', kval, @step
+          down = parseNum(stepNum[0]) < 0
+          if down
+            a3 = new Assign kval, new Op '-', len_val, new Literal 1
+            condition = new Op '>=', kval, new Literal 0
+          else
+            a3 = new Assign kval, new Literal 0
+            condition = new Op '<', kval, len_val
+
+          init.push a3
+        else
+          step_var = scope.freeVariable 'step'
+          step_var_val = new Value new Literal step_var
+          init_step = new Assign step_var_val, new Value @step
+
+          is_step_positive = (new Op '>', step_var_val, (new Literal 0))
+          start_rhs = new If is_step_positive, new Value new Literal 0
+          start_rhs.addElse new Op '-', len_val, new Literal 1
+          step = new Assign kval, new Op '+', kval, step_var_val
+          a3 = new Assign kval, start_rhs
+
+          condition = new Op '&&', (new Op '>=', kval, new Literal 0), (new Op '<', kval, len_val)
+
+          init.push init_step, a3
+
       ref_val_copy = ref_val.copy()
       ref_val_copy.add new Index kval
       a4 = new Assign @name, ref_val_copy

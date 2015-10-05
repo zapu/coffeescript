@@ -632,6 +632,160 @@ atest 'funcname with double quotes is safely emitted', (cb) ->
 
   cb(v is 1, {})
 
+atest 'consistent behavior of ranges with and without await', (cb) ->
+  arr1 = []
+  arr2 = []
+  for x in [3..0]
+    await delay defer()
+    arr1.push x
+
+  for x in [3..0]
+    arr2.push x
+
+  arrayEq arr1, arr2
+
+  arr1 = []
+  arr2 = []
+  for x in [3..0] by -1
+    await delay defer()
+    arr1.push x
+
+  for x in [3..0] by -1
+    arr2.push x
+
+  arrayEq arr1, arr2
+
+  for x in [3...0] by 1
+    await delay defer()
+    throw new Error 'Should never enter this loop'
+
+  for x in [3...0] by 1
+    throw new Error 'Should never enter this loop'
+
+  for x in [3..0] by 1
+    await delay defer()
+    throw new Error 'Should never enter this loop'
+
+  for x in [3..0] by 1
+    throw new Error 'Should never enter this loop'
+
+  for x in [0..3] by -1
+    throw new Error 'Should never enter this loop'
+    await delay defer()
+
+  for x in [0..3] by -1
+    throw new Error 'Should never enter this loop'
+
+  arr1 = []
+  arr2 = []
+  for x in [3..0] by -2
+    ok x <= 3
+    await delay defer()
+    arr1.push x
+
+  for x in [3..0] by -2
+    arr2.push x
+
+  arrayEq arr1, arr2
+
+  arr1 = []
+  arr2 = []
+  for x in [0..3] by 2
+    await delay defer()
+    arr1.push x
+
+  for x in [0..3] by 2
+    arr2.push x
+
+  arrayEq arr1, arr2
+
+  cb true, {}
+
+atest 'loops with defers (Issue #89 via @davidbau)', (cb) ->
+  arr = []
+  for x in [0..3] by 2
+    await delay defer()
+    arr.push x
+  arrayEq [0, 2], arr
+
+  arr = []
+  for x in ['a', 'b', 'c']
+    await delay defer()
+    arr.push x
+  arrayEq arr, ['a', 'b', 'c']
+
+  arr = []
+  for x in ['a', 'b', 'c'] by 1
+    await delay defer()
+    arr.push x
+  arrayEq arr, ['a', 'b', 'c']
+
+  arr = []
+  for x in ['d', 'e', 'f', 'g'] by 2
+    await delay defer()
+    arr.push x
+  arrayEq arr, [ 'd', 'f' ]
+
+  arr = []
+  for x in ['a', 'b', 'c'] by -1
+    await delay defer()
+    arr.push x
+  arrayEq arr, ['c', 'b', 'a']
+  
+  arr = []
+  step = -2
+  for x in ['a', 'b', 'c'] by step
+    await delay defer()
+    arr.push x
+  arrayEq arr, ['c', 'a']
+
+  cb true, {}
+
+atest 'loop with function as step', (cb) ->
+  makeFunc = ->
+    calld = false
+    return ->
+      if calld
+        throw Error 'step function called twice'
+
+      calld = true
+      return 1
+
+  # Basically, func should be called only once and its result should
+  # be used as step.
+
+  func = makeFunc()
+  arr = []
+  for x in [1,2,3] by func()
+    arr.push x  
+
+  arrayEq [1,2,3], arr
+
+  func = makeFunc()
+  arr = []
+  for x in [1,2,3] by func()
+    await delay defer()
+    arr.push x
+
+  arrayEq [1,2,3], arr
+
+  func = makeFunc()
+  arr = []
+  for x in [1..3] by func()
+    arr.push x
+
+  arrayEq [1,2,3], arr
+
+  func = makeFunc()
+  arr = []
+  for x in [1..3] by func()
+    await delay defer()
+    arr.push x
+
+  arrayEq [1,2,3], arr
+  
+  cb true, {}
+
 # helper to assert that a string should fail compilation
 cantCompile = (code) ->
   throws -> CoffeeScript.compile code
