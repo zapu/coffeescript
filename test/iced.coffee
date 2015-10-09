@@ -731,7 +731,7 @@ atest 'loops with defers (Issue #89 via @davidbau)', (cb) ->
     await delay defer()
     arr.push x
   arrayEq arr, ['c', 'b', 'a']
-  
+
   arr = []
   step = -2
   for x in ['a', 'b', 'c'] by step
@@ -739,6 +739,19 @@ atest 'loops with defers (Issue #89 via @davidbau)', (cb) ->
     arr.push x
   arrayEq arr, ['c', 'a']
 
+  cb true, {}
+
+atest "nested loops with negative steps", (cb) ->
+  v1 = []
+  for i in [10...0] by -1
+    for j in [10...i] by -1
+      await delay defer()
+      v1.push (i*1000)+j
+  v2 = []
+  for i in [10...0] by -1
+    for j in [10...i] by -1
+      v2.push (i*1000)+j
+  arrayEq v1, v2
   cb true, {}
 
 atest 'loop with function as step', (cb) ->
@@ -757,7 +770,7 @@ atest 'loop with function as step', (cb) ->
   func = makeFunc()
   arr = []
   for x in [1,2,3] by func()
-    arr.push x  
+    arr.push x
 
   arrayEq [1,2,3], arr
 
@@ -783,7 +796,7 @@ atest 'loop with function as step', (cb) ->
     arr.push x
 
   arrayEq [1,2,3], arr
-  
+
   cb true, {}
 
 # helper to assert that a string should fail compilation

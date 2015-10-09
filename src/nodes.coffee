@@ -3023,10 +3023,10 @@ exports.For = class For extends While
       # - Issue #99 as fixed by @davidbond
 
       # Create variables
-      begin = new Value new Literal "_begin"
-      end = new Value new Literal "_end"
-      positive = new Value new Literal "_positive"
-      stepVal = new Value new Literal "_step"
+      begin = new Value new Literal o.scope.freeVariable "begin"
+      end = new Value new Literal o.scope.freeVariable "end"
+      positive = new Value new Literal o.scope.freeVariable "positive"
+      stepVal = new Value new Literal o.scope.freeVariable "step"
 
       # Calculate stepping
       if @step
