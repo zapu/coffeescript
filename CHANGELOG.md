@@ -1,5 +1,6 @@
 ## v108.0.9
 
+- Bugfix: @zapu's PR for incorrect looping semantics, things like CoffeeScript's `for i in [10...3] by -1`.
 - Bugfix: unbreak nested forloops with _positive not scoped properly, reported by @jfgorski
 
 ## v108.0.8 (2015-08-27)
