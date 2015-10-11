@@ -9,6 +9,12 @@ Error.stackTraceLimit = Infinity
 {RESERVED, STRICT_PROSCRIBED} = require './lexer'
 iced = require 'iced-runtime'
 
+# At this stage of development of this branch, it's easy to mess up
+# runtimes. The one in node_modules/, which is used by default, will
+# probably be incorrect.
+if not iced.const.iterator
+  throw new Error 'Wrong iced runtime!'
+
 # Import the helpers we plan to use.
 {compact, flatten, extend, merge, del, starts, ends, some,
 addLocationDataFn, locationDataToString, throwSyntaxError} = require './helpers'
@@ -125,6 +131,9 @@ exports.Base = class Base
       new Call new Literal("#{res}.push"), [me]
     else
       new Return me
+
+  makeAutocbReturn: (o) ->
+    new Return this
 
   # Does this node, or any of its children, contain a node of a certain kind?
   # Recursively traverses down the *children* nodes and returns the first one
@@ -316,6 +325,17 @@ exports.Block = class Block extends Base
         break
     this
 
+  makeAutocbReturn: (o) ->
+    len = @expressions.length
+    while len--
+      expr = @expressions[len]
+      if expr not instanceof Comment and expr not instanceof Await
+        @expressions[len] = expr.makeAutocbReturn(o)
+        return this
+
+    @expressions.push new Return
+    this
+
   # A **Block** is the only node that can serve as the root.
   compileToFragments: (o = {}, level) ->
     if o.scope then super o, level else @compileRoot o
@@ -476,6 +496,12 @@ exports.Literal = class Literal extends Base
     return this if @value is 'continue' and not o?.loop
 
   compileNode: (o) ->
+    if @value is 'arguments' and o.scope.icedUseArguments
+      # TODO: How to access icedArgumentsVar? It is buried in
+      # the scopes...
+      #@value = o.scope.parent.icedArgumentsVar
+      @value = "_arguments"
+
     code = if @value is 'this'
       if o.scope.method?.bound then o.scope.method.context else @value
     else if @value.reserved
@@ -487,6 +513,14 @@ exports.Literal = class Literal extends Base
 
   toString: ->
     ' "' + @value + '"'
+
+  icedWalkAst: (o) ->
+    # Check if any of the code references `arguments` variable
+    # if we also have await construct. Arguments array will be
+    # stored in temporary variable at the beginning of function.
+    if @value is 'arguments' and o.awaitInFunc
+      o.foundArguments = true
+    this
 
 class exports.Undefined extends Base
   isAssignable: NO
@@ -518,11 +552,15 @@ exports.Return = class Return extends Base
   makeReturn:      THIS
   jumps:           THIS
 
+  makeAutocbReturn: -> this
+
   compileToFragments: (o, level) ->
     expr = @expression?.makeReturn()
     if expr and expr not instanceof Return then expr.compileToFragments o, level else super o, level
 
   compileNode: (o) ->
+    return @icedCompileAutocb(o) if o.scope.doAutocb
+
     answer = []
     # TODO: If we call expression.compile() here twice, we'll sometimes get back different results!
     answer.push @makeCode @tab + "return#{if @expression then " " else ""}"
@@ -530,6 +568,14 @@ exports.Return = class Return extends Base
       answer = answer.concat @expression.compileToFragments o, LEVEL_PAREN
     answer.push @makeCode ";"
     return answer
+
+  icedCompileAutocb : (o) ->
+    cb = new Value new Literal iced.const.autocb
+    args = if @expression then [ @expression ] else []
+    call = new Call cb, args
+    ret = new Literal "return"
+    block = new Block [ call, ret ];
+    block.compileNode o
 
 # `yield return` works exactly like `return`, except that it turns the function
 # into a generator.
@@ -600,6 +646,9 @@ exports.Value = class Value extends Base
   # properties.
   unwrap: ->
     if @properties.length then this else @base
+
+  unwrapAll: ->
+    if @properties.length then this else @unwrap @base
 
   # A reference has base part (`this` value) and name part.
   # We cache them separately for compiling complex expressions.
@@ -1527,6 +1576,8 @@ exports.Code = class Code extends Base
     o.scope         = del(o, 'classScope') or @makeScope o.scope
     o.scope.shared  = del(o, 'sharedScope') or @icedgen
     o.scope.icedgen = @icedgen
+    o.scope.doAutocb = @foundAutocb
+    o.scope.icedUseArguments = @icedUseArguments if @icedUseArguments
     o.indent        += TAB
     delete o.bare
     delete o.isExistentialEquals
@@ -1563,7 +1614,14 @@ exports.Code = class Code extends Base
     @eachParamName (name, node) ->
       node.error "multiple parameters named #{name}" if name in uniqs
       uniqs.push name
-    @body.makeReturn() unless wasEmpty or @noReturn
+    if @foundAutocb
+      @body.makeAutocbReturn(o)
+    else
+      @body.makeReturn() unless wasEmpty or @noReturn
+    if @icedSaveArguments
+      arg_var = o.scope.freeVariable '_arguments'
+      o.scope.icedArgumentsVar = arg_var
+      @body.expressions.unshift new Assign (new Literal arg_var), (new Literal 'arguments')
     code = 'function'
     code += '*' if @isGenerator
     code += ' ' + @name if @ctor
@@ -1597,7 +1655,9 @@ exports.Code = class Code extends Base
     @error "Methods with `await` cannot be generators" if @isGenerator
 
     # the outer function must be bound to properly capture this.
-    @bound = true
+    # TODO: Should it? `@bound = true` here breaks class methods
+    # with await.
+    #@bound = true
 
     # Don't do the same operation the next time through
     @icedFlag = false
@@ -1611,13 +1671,22 @@ exports.Code = class Code extends Base
     f = new Value new Literal iced.const.ns
     f.add new Access new Value new Literal iced.const.findDeferral
     rhs = new Call f, [ new Value new Literal 'arguments' ]
-    body.push(new Assign @icedPassedDeferral, rhs)
+    body.push(new Assign @icedPassedDeferral, rhs, null, { param: true })
 
     # var __it = (function* (_this) {  [ @body ]} )(this);
     code = new Code [], (new Block [ @body ]), 'icedgen'
     code.isGenerator = true
+
+    # if we have autocb, ensure inner block will emit it
+    code.foundAutocb = @foundAutocb
+    @foundAutocb = false # but not outer block!
+
+    if @icedFoundArguments
+      @icedSaveArguments = true
+      code.icedUseArguments = true
+
     rhs = new Call code, []
-    body.push(new Assign @icedIterator, rhs)
+    body.push(new Assign @icedIterator, rhs, null, { param: true })
 
     # __it.next();
     nxt = @icedIterator.copy()
@@ -1634,6 +1703,12 @@ exports.Code = class Code extends Base
     o.awaitInFile = o.awaitInFile or o_new.awaitInFile
     o.deferInFile = o.deferInFile or o_new.deferInFile
     @icedFlag = o_new.awaitInFunc
+    @icedFoundArguments = o.foundArguments or o_new.foundArguments
+
+    for param in @params
+      if param.name instanceof Literal and param.name.value is iced.const.autocb
+        @foundAutocb = true
+        break
     @
 
   icedTraceName : ->
@@ -1806,6 +1881,13 @@ exports.While = class While extends Base
     else
       @returns = not @jumps loop: yes
       this
+
+  makeAutocbReturn: (o) ->
+    retval = new Literal o.scope.freeVariable 'ret'
+    new Block [
+      new Assign retval, @unwrapAll()
+      new Return retval
+    ]
 
   addBody: (@body) ->
     this
@@ -2677,6 +2759,12 @@ exports.If = class If extends Base
     @elseBody  or= new Block [new Literal 'void 0'] if res
     @body     and= new Block [@body.makeReturn res]
     @elseBody and= new Block [@elseBody.makeReturn res]
+    this
+
+  makeAutocbReturn: (o) ->
+    @elseBody  or= new Block []
+    @body and= @body.makeAutocbReturn(o)
+    @elseBody and= @elseBody.makeAutocbReturn(o)
     this
 
   ensureBlock: (node) ->
