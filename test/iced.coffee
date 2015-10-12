@@ -830,6 +830,13 @@ atest 'can await in expressions', (cb) ->
 
   cb true, {}
 
+atest 'can return immediately from awaited func', (cb) ->
+  func = (cb) ->
+    cb()
+
+  await func defer()
+  cb true, {}
+
 # helper to assert that a string should fail compilation
 cantCompile = (code) ->
   throws -> CoffeeScript.compile code
