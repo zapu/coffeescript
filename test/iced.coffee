@@ -823,13 +823,6 @@ atest 'arguments clash', (cb) ->
   await func defer(res), 'test'
   cb res == 'test', {}
 
-atest 'can await in expressions', (cb) ->
-  res =
-    for [1..10]
-      await delay defer()
-
-  cb true, {}
-
 atest 'can return immediately from awaited func', (cb) ->
   func = (cb) ->
     cb()

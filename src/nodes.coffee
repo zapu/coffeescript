@@ -264,6 +264,19 @@ exports.Base = class Base
     for child in @icedFlattenChildren()
       child.icedWalkAst o
 
+  # Traverse children and check if there is any await statement. This
+  # is used to generate an error when user tries to use an expression
+  # with Await in illegal places, like If's condition, Call arguments,
+  # right side of Assign, etc.
+  icedStatementAssertion : () ->
+    # TODO: Ideally this would be detected and saved in one of the
+    # tree-walking routines, so we don't walk the tree (potentially
+    # visiting same nodes over and over) every time someone calls this
+    # method.
+
+    if @contains((node)-> node instanceof Await)
+      @error "await'ed statements can't act as expressions"
+
   # Create a Return of this expression. Because the Return created
   # will be compiled as a autocb call, this is different from usual
   # makeReturn because we actually _EXPECT_ this to create a Return,
@@ -577,6 +590,8 @@ exports.Return = class Return extends Base
     if expr and expr not instanceof Return then expr.compileToFragments o, level else super o, level
 
   compileNode: (o) ->
+    @icedStatementAssertion()
+
     return @icedCompileAutocb(o) if o.scope.doAutocb
 
     answer = []
@@ -845,6 +860,8 @@ exports.Call = class Call extends Base
 
   # Compile a vanilla function call.
   compileNode: (o) ->
+    @icedStatementAssertion()
+
     @variable?.front = @front
     compiledArray = Splat.compileSplattedArray o, @args, true
     if compiledArray.length
@@ -1370,6 +1387,8 @@ exports.Assign = class Assign extends Base
   # we've been assigned to, for correct internal references. If the variable
   # has not been seen yet within the current scope, declare it.
   compileNode: (o) ->
+    @icedStatementAssertion()
+
     if isValue = @variable instanceof Value
       return @compilePatternMatch o if @variable.isArray() or @variable.isObject()
       return @compileSplice       o if @variable.isSplice()
@@ -1916,6 +1935,8 @@ exports.While = class While extends Base
   # *while* can be used as a part of a larger expression -- while loops may
   # return an array containing the computed result of each iteration.
   compileNode: (o) ->
+    @condition.icedStatementAssertion();
+
     o.indent += TAB
     set      = ''
     {body}   = this
@@ -2621,6 +2642,9 @@ exports.For = class For extends While
     guardPart   = ''
     defPart     = ''
     idt1        = @tab + TAB
+
+    source.icedStatementAssertion()
+
     if @range
       forPartFragments = source.compileToFragments merge o,
         {index: ivar, name, @step, isComplex: isComplexOrAssignable}
@@ -2715,6 +2739,8 @@ exports.Switch = class Switch extends Base
     this
 
   compileNode: (o) ->
+    @subject.icedStatementAssertion() if @subject
+
     idt1 = o.indent + TAB
     idt2 = o.indent = idt1 + TAB
     fragments = [].concat @makeCode(@tab + "switch ("),
@@ -2772,6 +2798,8 @@ exports.If = class If extends Base
   jumps: (o) -> @body.jumps(o) or @elseBody?.jumps(o)
 
   compileNode: (o) ->
+    @condition.icedStatementAssertion()
+
     if @isStatement o then @compileStatement o else @compileExpression o
 
   makeReturn: (res) ->
