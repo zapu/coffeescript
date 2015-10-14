@@ -530,10 +530,20 @@ exports.Literal = class Literal extends Base
 
   compileNode: (o) ->
     if @value is 'arguments' and o.scope.icedUseArguments
-      # TODO: How to access icedArgumentsVar? It is buried in
-      # the scopes...
-      #@value = o.scope.parent.icedArgumentsVar
-      @value = "_arguments"
+      # TODO: Find a better way to supply icedArgumentsVar instead
+      # of this scope madness.
+
+      # Observe:
+
+      # bar = function(i, cb) {               # ~ PARENT 2
+      #     var __iced_it, __iced_passed_deferral, _arguments;
+      #     _arguments = arguments;
+      #     __iced_passed_deferral = iced.findDeferral(arguments);
+      #     __iced_it = (function(_this) {    # ~ PARENT 1
+      #       return function*() {
+      #           # ~ WE ARE HERE ~
+
+      @value = o.scope.parent.parent.icedArgumentsVar
 
     code = if @value is 'this'
       if o.scope.method?.bound then o.scope.method.context else @value
