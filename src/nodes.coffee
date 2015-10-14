@@ -132,9 +132,6 @@ exports.Base = class Base
     else
       new Return me
 
-  makeAutocbReturn: (o) ->
-    new Return this
-
   # Does this node, or any of its children, contain a node of a certain kind?
   # Recursively traverses down the *children* nodes and returns the first one
   # that verifies `pred`. Otherwise return undefined. `contains` does not cross
@@ -267,6 +264,15 @@ exports.Base = class Base
     for child in @icedFlattenChildren()
       child.icedWalkAst o
 
+  # Create a Return of this expression. Because the Return created
+  # will be compiled as a autocb call, this is different from usual
+  # makeReturn because we actually _EXPECT_ this to create a Return,
+  # instead of, for example marking that a node `returns` (for which
+  # then usually compileNode will emit optimized javascript with
+  # `return`).
+  makeAutocbReturn: (o) ->
+    new Return this
+
   # End Iced Additions...
   #------
 
@@ -323,17 +329,6 @@ exports.Block = class Block extends Base
         @expressions[len] = expr.makeReturn res
         @expressions.splice(len, 1) if expr instanceof Return and not expr.expression
         break
-    this
-
-  makeAutocbReturn: (o) ->
-    len = @expressions.length
-    while len--
-      expr = @expressions[len]
-      if expr not instanceof Comment and expr not instanceof Await
-        @expressions[len] = expr.makeAutocbReturn(o)
-        return this
-
-    @expressions.push new Return
     this
 
   # A **Block** is the only node that can serve as the root.
@@ -466,6 +461,31 @@ exports.Block = class Block extends Base
     # return this for chaining
     @
 
+  # Ensure a block has a Return (at least one) that can be properly
+  # transformed into autocb call.
+  makeAutocbReturn: (o) ->
+    len = @expressions.length
+    while len--
+      expr = @expressions[len]
+      if expr instanceof Comment
+        continue
+
+      if expr instanceof Await
+        # Await statement - fall through, add new Return statement
+        break
+
+      if expr not instanceof Block and expr.contains((node) -> node instanceof Await)
+        # Do not discard Blocks here, we are descending into them.
+        break
+
+      @expressions[len] = expr.makeAutocbReturn(o)
+      return this
+
+    # No suitable expression found, create new Return statement that
+    # will be transformed into autocb call.
+    @expressions.push new Return
+    this
+
   # end Iced Additions
   #--------------------
 
@@ -552,8 +572,6 @@ exports.Return = class Return extends Base
   makeReturn:      THIS
   jumps:           THIS
 
-  makeAutocbReturn: -> this
-
   compileToFragments: (o, level) ->
     expr = @expression?.makeReturn()
     if expr and expr not instanceof Return then expr.compileToFragments o, level else super o, level
@@ -576,6 +594,8 @@ exports.Return = class Return extends Base
     ret = new Literal "return"
     block = new Block [ call, ret ];
     block.compileNode o
+
+  makeAutocbReturn: THIS
 
 # `yield return` works exactly like `return`, except that it turns the function
 # into a generator.
@@ -1882,13 +1902,6 @@ exports.While = class While extends Base
       @returns = not @jumps loop: yes
       this
 
-  makeAutocbReturn: (o) ->
-    retval = new Literal o.scope.freeVariable 'ret'
-    new Block [
-      new Assign retval, @unwrapAll()
-      new Return retval
-    ]
-
   addBody: (@body) ->
     this
 
@@ -1924,6 +1937,12 @@ exports.While = class While extends Base
       answer.push @makeCode "\n#{@tab}return #{rvar};"
     answer
 
+  makeAutocbReturn: (o) ->
+    retval = new Literal o.scope.freeVariable 'ret'
+    new Block [
+      new Assign retval, @unwrapAll()
+      new Return retval
+    ]
 #### Op
 
 # Simple Arithmetic and logical operations. Performs some conversion from
@@ -2761,12 +2780,6 @@ exports.If = class If extends Base
     @elseBody and= new Block [@elseBody.makeReturn res]
     this
 
-  makeAutocbReturn: (o) ->
-    @elseBody  or= new Block []
-    @body and= @body.makeAutocbReturn(o)
-    @elseBody and= @elseBody.makeAutocbReturn(o)
-    this
-
   ensureBlock: (node) ->
     if node instanceof Block then node else new Block [node]
 
@@ -2803,6 +2816,12 @@ exports.If = class If extends Base
 
   unfoldSoak: ->
     @soak and this
+
+  makeAutocbReturn: (o) ->
+    @elseBody  or= new Block []
+    @body and= @body.makeAutocbReturn(o)
+    @elseBody and= @elseBody.makeAutocbReturn(o)
+    this
 
 # Constants
 # ---------
