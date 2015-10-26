@@ -646,9 +646,6 @@ exports.Value = class Value extends Base
   unwrap: ->
     if @properties.length then this else @base
 
-  unwrapAll: ->
-    if @properties.length then this else @unwrap @base
-
   # A reference has base part (`this` value) and name part.
   # We cache them separately for compiling complex expressions.
   # `a()[b()] ?= c` -> `(_base = a())[_name = b()] ? _base[_name] = c`
