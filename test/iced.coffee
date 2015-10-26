@@ -144,129 +144,78 @@ atest "loop construct", (cb) ->
     await delay defer()
   cb(i is 10, {})
 
-atest "simple autocb operations", (cb) ->
-  b = false
-  foo = (autocb) ->
-    await delay defer()
-    true
-  await foo defer b
-  cb(b, {})
-
-atest "fat arrow autocb operations", (cb) ->
-  b = false
-  foo = (autocb) =>
-    await delay defer()
-    true
-  await foo defer b
-  cb(b, {})
-
-atest "returning autocb as last value of a block", (cb) ->
-  b = false
-  maker = (val) -> (autocb) -> val
-  foo = maker true
-  await foo defer b
-  cb(b, {})
-
 test "`this` points to object instance in methods with await", ->
   class MyClass
-    huh: (autocb) ->
+    huh: (cb) ->
       ok @a is 'a'
       await delay defer()
+      cb()
   o = new MyClass
   o.a = 'a'
-  o.huh()
+  o.huh(->)
 
 atest "AT variable works in an await (1)", (cb) ->
   class MyClass
     constructor : ->
       @flag = false
-    chill : (autocb) ->
+    chill : (cb) ->
       await delay defer()
-    run : (autocb) ->
+      cb()
+    run : (cb) ->
       await @chill defer()
       @flag = true
+      cb()
     getFlag : -> @flag
   o = new MyClass
   await o.run defer()
   cb(o.getFlag(), {})
 
-atest "more advanced autocb test", (cb) ->
-  bar = -> "yoyo"
-  foo = (val, autocb) ->
-    await delay defer()
-    if val is 0 then [1,2,3]
-    else if val is 1 then { a : 10 }
-    else if val is 2 then bar()
-    else 33
-  oks = 0
-  await foo 0, defer x
-  oks++ if x[2] is 3
-  await foo 1, defer x
-  oks++ if x.a is 10
-  await foo 2, defer x
-  oks++ if x is "yoyo"
-  await foo 100, defer x
-  oks++ if x is 33
-  cb(oks is 4, {})
-
-atest "test of autocb in a simple function", (cb) ->
-  simple = (autocb) ->
-    await delay defer()
-  ok = false
-  await simple defer()
-  ok = true
-  cb(ok,{})
-
 atest "test nested serial/parallel", (cb) ->
   slots = []
   await
     for i in [0..10]
-      ( (j, autocb) ->
+      ( (j, cb) ->
         await delay defer(), 5 * Math.random()
         await delay defer(), 4 * Math.random()
         slots[j] = true
+        cb()
       )(i, defer())
   ok = true
   for i in [0..10]
     ok = false unless slots[i]
   cb(ok, {})
 
-atest "loops respect autocbs", (cb) ->
-  ok = false
-  bar = (autocb) ->
-    for i in [0..10]
-      await delay defer()
-      ok = true
-  await bar defer()
-  cb(ok, {})
-
 atest "test scoping", (cb) ->
   class MyClass
     constructor : -> @val = 0
-    run : (autocb) ->
+    run : (cb) ->
       @val++
       await delay defer()
       @val++
       await
         class Inner
-          chill : (autocb) ->
+          chill : (cb) ->
             await delay defer()
             @val = 0
+            cb()
         i = new Inner
         i.chill defer()
       @val++
       await delay defer()
       @val++
       await
-        ( (autocb) ->
+        ( (cb) ->
           class Inner
-            chill : (autocb) ->
+            chill : (cb) ->
               await delay defer()
               @val = 0
+              cb()
           i = new Inner
           await i.chill defer()
+          cb()
         )(defer())
       ++@val
+      cb(@val)
     getVal : -> @val
   o = new MyClass
   await o.run defer(v)
@@ -276,7 +225,9 @@ atest "AT variable works in an await (2)", (cb) ->
   class MyClass
     constructor : -> @val = 0
     inc : -> @val++
-    chill : (autocb) -> await delay defer()
+    chill : (cb) ->
+      await delay defer()
+      cb()
     run : (cb) ->
       await @chill defer()
       for i in [0..9]
@@ -287,14 +238,6 @@ atest "AT variable works in an await (2)", (cb) ->
   o = new MyClass
   await o.run defer()
   cb(o.getVal() is 10, {})
-
-atest "another autocb gotcha", (cb) ->
-  bar = (autocb) ->
-    await delay defer() if yes
-  ok = false
-  await bar defer()
-  ok = true
-  cb(ok, {})
 
 atest "fat arrow versus iced", (cb) ->
   class Foo
@@ -307,8 +250,9 @@ atest "fat arrow versus iced", (cb) ->
     useHandler : (key, args...) ->
       @bindings[key](args...)
 
-    delay : (autocb) ->
+    delay : (cb) ->
       await delay defer()
+      cb()
 
     addHandlers : ->
       @addHandler "sleep1", (cb) =>
@@ -335,55 +279,6 @@ atest "nested loops", (cb) ->
       await delay(defer(),1)
       val++
   cb(val is 100, {})
-
-atest "empty autocb", (cb) ->
-  bar = (autocb) ->
-  await bar defer()
-  cb(true, {})
-
-atest "more autocb (false)", (cb) ->
-  bar = (autocb) ->
-    if false
-      console.log "not reached"
-  await bar defer()
-  cb(true, {})
-
-atest "more autocb (true)", (cb) ->
-  bar = (autocb) ->
-    if true
-      10
-  await bar defer()
-  cb(true, {})
-
-atest "more autocb (true & false)", (cb) ->
-  bar = (autocb) ->
-    if false
-      10
-    else
-      if false
-        11
-  await bar defer()
-  cb(true, {})
-
-atest "more autocb (while)", (cb) ->
-  bar = (autocb) ->
-    while false
-      10
-  await bar defer()
-  cb(true, {})
-
-atest "more autocb (comments)", (cb) ->
-  bar = (autocb) ->
-    ###
-    blah blah blah
-    ###
-
-  bar2 = (autocb) ->
-    # blah
-    # blah
-  await bar defer()
-  await bar2 defer()
-  cb(true, {})
 
 atest "until", (cb) ->
   i = 10
@@ -423,14 +318,6 @@ atest 'nested for .. of .. loops', (cb) ->
       await delay defer()
       tot++
   cb(tot is 74, {})
-
-atest 'for + return + autocb (part 2)', (cb) ->
-  bar = (autocb) ->
-    await delay defer()
-    x = (i for i in [0..10])
-    [10..20]
-  await bar defer v
-  cb(v[3] is 13, {})
 
 atest "for + guards", (cb) ->
   v = []
@@ -603,13 +490,6 @@ atest "destructuring assignment in defer", (cb) ->
   await j defer { z }
   cb(z is 33, {})
 
-atest 'for + return + autocb', (cb) ->
-  bar = (autocb) ->
-    await delay defer()
-    (i for i in [0..10])
-  await bar defer v
-  cb(v[3] is 3, {})
-
 atest 'defer + class member assignments', (cb) ->
   myfn = (cb) ->
     await delay defer()
@@ -625,8 +505,8 @@ atest 'defer + class member assignments', (cb) ->
 # tests bug #146 (github.com/maxtaco/coffee-script/issues/146)
 atest 'deferral variable with same name as a parameter in outer scope', (cb) ->
   val = 0
-  g = (autocb) ->
-    return 2
+  g = (cb) ->
+    cb(2)
   f = (x) ->
     (->
       val = x

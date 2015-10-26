@@ -277,15 +277,6 @@ exports.Base = class Base
     if @contains((node)-> node instanceof Await)
       @error "await'ed statements can't act as expressions"
 
-  # Create a Return of this expression. Because the Return created
-  # will be compiled as a autocb call, this is different from usual
-  # makeReturn because we actually _EXPECT_ this to create a Return,
-  # instead of, for example marking that a node `returns` (for which
-  # then usually compileNode will emit optimized javascript with
-  # `return`).
-  makeAutocbReturn: (o) ->
-    new Return this
-
   # End Iced Additions...
   #------
 
@@ -474,31 +465,6 @@ exports.Block = class Block extends Base
     # return this for chaining
     @
 
-  # Ensure a block has a Return (at least one) that can be properly
-  # transformed into autocb call.
-  makeAutocbReturn: (o) ->
-    len = @expressions.length
-    while len--
-      expr = @expressions[len]
-      if expr instanceof Comment
-        continue
-
-      if expr instanceof Await
-        # Await statement - fall through, add new Return statement
-        break
-
-      if expr not instanceof Block and expr.contains((node) -> node instanceof Await)
-        # Do not discard Blocks here, we are descending into them.
-        break
-
-      @expressions[len] = expr.makeAutocbReturn(o)
-      return this
-
-    # No suitable expression found, create new Return statement that
-    # will be transformed into autocb call.
-    @expressions.push new Return
-    this
-
   # end Iced Additions
   #--------------------
 
@@ -602,8 +568,6 @@ exports.Return = class Return extends Base
   compileNode: (o) ->
     @icedStatementAssertion()
 
-    return @icedCompileAutocb(o) if o.scope.doAutocb
-
     answer = []
     # TODO: If we call expression.compile() here twice, we'll sometimes get back different results!
     answer.push @makeCode @tab + "return#{if @expression then " " else ""}"
@@ -611,16 +575,6 @@ exports.Return = class Return extends Base
       answer = answer.concat @expression.compileToFragments o, LEVEL_PAREN
     answer.push @makeCode ";"
     return answer
-
-  icedCompileAutocb : (o) ->
-    cb = new Value new Literal iced.const.autocb
-    args = if @expression then [ @expression ] else []
-    call = new Call cb, args
-    ret = new Literal "return"
-    block = new Block [ call, ret ];
-    block.compileNode o
-
-  makeAutocbReturn: THIS
 
 # `yield return` works exactly like `return`, except that it turns the function
 # into a generator.
@@ -1607,6 +1561,8 @@ exports.Code = class Code extends Base
   # arrow, generates a wrapper that saves the current value of `this` through
   # a closure.
   compileNode: (o) ->
+    if @foundAutocb
+      @error 'autocb is deprecated.'
 
     if @bound and o.scope.method?.bound
       @context = o.scope.method.context
@@ -1625,7 +1581,6 @@ exports.Code = class Code extends Base
     o.scope         = del(o, 'classScope') or @makeScope o.scope
     o.scope.shared  = del(o, 'sharedScope') or @icedgen
     o.scope.icedgen = @icedgen
-    o.scope.doAutocb = @foundAutocb
     o.scope.icedUseArguments = @icedUseArguments if @icedUseArguments
     o.indent        += TAB
     delete o.bare
@@ -1663,10 +1618,7 @@ exports.Code = class Code extends Base
     @eachParamName (name, node) ->
       node.error "multiple parameters named #{name}" if name in uniqs
       uniqs.push name
-    if @foundAutocb
-      @body.makeAutocbReturn(o)
-    else
-      @body.makeReturn() unless wasEmpty or @noReturn
+    @body.makeReturn() unless wasEmpty or @noReturn
     if @icedSaveArguments
       arg_var = o.scope.freeVariable '_arguments'
       o.scope.icedArgumentsVar = arg_var
@@ -1725,10 +1677,6 @@ exports.Code = class Code extends Base
     # var __it = (function* (_this) {  [ @body ]} )(this);
     code = new Code [], (new Block [ @body ]), 'icedgen'
     code.isGenerator = true
-
-    # if we have autocb, ensure inner block will emit it
-    code.foundAutocb = @foundAutocb
-    @foundAutocb = false # but not outer block!
 
     if @icedFoundArguments
       @icedSaveArguments = true
@@ -1968,12 +1916,6 @@ exports.While = class While extends Base
       answer.push @makeCode "\n#{@tab}return #{rvar};"
     answer
 
-  makeAutocbReturn: (o) ->
-    retval = new Literal o.scope.freeVariable 'ret'
-    new Block [
-      new Assign retval, @unwrapAll()
-      new Return retval
-    ]
 #### Op
 
 # Simple Arithmetic and logical operations. Performs some conversion from
@@ -2487,7 +2429,8 @@ class IcedRuntime extends Block
         ns = new Value new Literal iced.const.ns
         new Assign ns, callv
       when "none" then null
-      else throw SyntaxError "unexpected flag IcedRuntime #{v}"
+      else
+        @error "unexpected flag IcedRuntime #{v}"
 
     @push inc if inc
 
@@ -2854,12 +2797,6 @@ exports.If = class If extends Base
 
   unfoldSoak: ->
     @soak and this
-
-  makeAutocbReturn: (o) ->
-    @elseBody  or= new Block []
-    @body and= @body.makeAutocbReturn(o)
-    @elseBody and= @elseBody.makeAutocbReturn(o)
-    this
 
 # Constants
 # ---------
