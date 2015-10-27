@@ -913,7 +913,7 @@ exports.Access = class Access extends Base
 
   compileToFragments: (o) ->
     name = @name.compileToFragments o
-    if IDENTIFIER.test fragmentsToText name
+    if (IDENTIFIER.test fragmentsToText name) or @name instanceof Defer
       name.unshift @makeCode "."
     else
       name.unshift @makeCode "["

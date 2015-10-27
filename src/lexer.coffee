@@ -116,10 +116,8 @@ exports.Lexer = class Lexer
     [..., prev] = @tokens
     forcedIdentifier = colon or prev? and
       (prev[0] in ['.', '?.', '::', '?::'] or
-      not prev.spaced and prev[0] is '@')
-
-    # IcedCoffeeScript addition
-    forcedIdentifier = false if id is 'defer'
+      # 'defer' here is IcedCoffeeScript addition
+      not prev.spaced and prev[0] is '@') and id isnt 'defer'
 
     tag = 'IDENTIFIER'
 

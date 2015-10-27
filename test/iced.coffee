@@ -710,6 +710,14 @@ atest 'can return immediately from awaited func', (cb) ->
   await func defer()
   cb true, {}
 
+atest 'using defer in other contexts', (cb) ->
+  a =
+    defer: ->
+      cb true, {}
+
+  await delay defer()
+  a.defer()
+
 # helper to assert that a string should fail compilation
 cantCompile = (code) ->
   throws -> CoffeeScript.compile code
