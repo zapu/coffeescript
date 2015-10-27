@@ -756,3 +756,10 @@ atest "await expression assertions 1", (cb) ->
         else 20
 '''
   cb true, {}
+
+atest "autocb is illegal", (cb) ->
+  cantCompile '''
+    func = (autocb) ->
+'''
+
+  cb true, {}
