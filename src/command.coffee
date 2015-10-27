@@ -12,6 +12,10 @@ optparse       = require './optparse'
 CoffeeScript   = require './coffee-script'
 {spawn, exec}  = require 'child_process'
 {EventEmitter} = require 'events'
+iced           = require 'iced-runtime'
+
+# Iced addition
+runtime_modes_str = "{" + (iced.const.runtime_modes.join ", ") + "}"
 
 useWinPathSep  = path.sep is '\\'
 
@@ -50,6 +54,9 @@ SWITCHES = [
   ['-t', '--tokens',          'print out the tokens that the lexer/rewriter produce']
   ['-v', '--version',         'display the version number']
   ['-w', '--watch',           'watch scripts for changes and rerun commands']
+  # Iced additions
+  ['-I', '--runtime [WHICH]', "how to include the iced runtime, one of #{runtime_modes_str}; default is 'node'" ]
+  ['-F', '--runforce',        'output an Iced runtime even if not needed' ]
 ]
 
 # Top-level objects shared by all the functions.
@@ -396,6 +403,12 @@ printTokens = (tokens) ->
     "[#{tag} #{value}]"
   printLine strings.join(' ')
 
+handleIcedOptions = (o) ->
+  # Some opts we can read out of the evironment
+  o.runtime = v if not o.runtime and (v = process.env.ICED_RUNTIME)?
+  if (val = o.runtime)? and val not in iced.const.runtime_modes
+    throw new Error "Option -I/--runtime has to be one of #{runtime_modes_str}, got '#{val}'"
+
 # Use the [OptionParser module](optparse.html) to extract all options from
 # `process.argv` that are specified in `SWITCHES`.
 parseOptions = ->
@@ -413,6 +426,9 @@ compileOptions = (filename, base) ->
     bare: opts.bare
     header: opts.compile and not opts['no-header']
     sourceMap: opts.map
+    # Iced additions:
+    runtime: opts.runtime
+    runforce: opts.runforce
   }
   if filename
     if base
