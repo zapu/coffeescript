@@ -2415,7 +2415,7 @@ class IcedRuntime extends Block
         InlineRuntime.generate(if window_val then window_val.copy() else null)
       when "node", "browserify", "interp"
         interp = (v is "interp")
-        qmodname = if interp then require_top_dir() else "'iced-runtime'"
+        qmodname = if interp then require_top_dir() else "'iced-runtime-3'"
         accessname = iced.const.ns
         file = new Literal qmodname
         access = new Access new Literal accessname

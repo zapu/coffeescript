@@ -12,7 +12,7 @@ optparse       = require './optparse'
 CoffeeScript   = require './coffee-script'
 {spawn, exec}  = require 'child_process'
 {EventEmitter} = require 'events'
-iced           = require 'iced-runtime'
+iced           = require 'iced-runtime-3'
 
 # Iced addition
 runtime_modes_str = "{" + (iced.const.runtime_modes.join ", ") + "}"

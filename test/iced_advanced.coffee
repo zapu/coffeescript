@@ -1,5 +1,5 @@
 if require?
-  iced = icedlib = require 'iced-runtime'
+  iced = icedlib = require 'iced-runtime-3'
 
 ##----------------------------------------------------------------------
 
