@@ -7,7 +7,7 @@ Error.stackTraceLimit = Infinity
 
 {Scope} = require './scope'
 {RESERVED, STRICT_PROSCRIBED} = require './lexer'
-iced = require 'iced-runtime'
+iced = require 'iced-runtime-3'
 
 # At this stage of development of this branch, it's easy to mess up
 # runtimes. The one in node_modules/, which is used by default, will
