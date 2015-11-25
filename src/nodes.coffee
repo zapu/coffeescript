@@ -9,12 +9,6 @@ Error.stackTraceLimit = Infinity
 {RESERVED, STRICT_PROSCRIBED} = require './lexer'
 iced = require 'iced-runtime-3'
 
-# At this stage of development of this branch, it's easy to mess up
-# runtimes. The one in node_modules/, which is used by default, will
-# probably be incorrect.
-if not iced.const.iterator
-  throw new Error 'Wrong iced runtime!'
-
 # Import the helpers we plan to use.
 {compact, flatten, extend, merge, del, starts, ends, some,
 addLocationDataFn, locationDataToString, throwSyntaxError} = require './helpers'
