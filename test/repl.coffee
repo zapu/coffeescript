@@ -106,5 +106,9 @@ testRepl "keeps running after runtime error", (input, output) ->
   input.emitLine 'a'
   eq 'undefined', output.lastWrite()
 
+testRepl "iced: handle awaits", (input, output) ->
+  input.emitLine 'a = -> await b defer()'
+  eq '[Function]', output.lastWrite()
+
 process.on 'exit', ->
   fs.unlinkSync historyFile
