@@ -1,14 +1,14 @@
 {
-  "name": "coffee-script",
-  "description": "Unfancy JavaScript",
+  "name": "iced-coffee-script",
+  "description": "IcedCoffeeScript",
   "keywords": [
     "javascript",
     "language",
     "coffeescript",
     "compiler"
   ],
-  "author": "Jeremy Ashkenas",
-  "version": "1.10.0",
+  "author": "Jeremy Ashkenas + Maxwell Krohn",
+  "version": "110.0.0",
   "license": "MIT",
   "engines": {
     "node": ">=0.8.0"
@@ -18,19 +18,19 @@
   },
   "main": "./lib/coffee-script/coffee-script",
   "bin": {
-    "coffee": "./bin/coffee",
-    "cake": "./bin/cake"
+    "iced": "./bin/coffee",
+    "icake": "./bin/cake"
   },
   "preferGlobal": true,
   "scripts": {
     "test":         "node ./bin/cake test",
     "test-harmony": "node --harmony ./bin/cake test"
   },
-  "homepage": "http://coffeescript.org",
-  "bugs": "https://github.com/jashkenas/coffeescript/issues",
+  "homepage": "http://maxtaco.github.io/coffee-script",
+  "bugs": "https://github.com/maxtaco/coffee-script/issues",
   "repository": {
     "type": "git",
-    "url": "git://github.com/jashkenas/coffeescript.git"
+    "url": "git://github.com/maxtaco/coffee-script.git"
   },
   "devDependencies": {
     "uglify-js": "~2.2",
@@ -38,5 +38,8 @@
     "highlight.js": "~8.0.0",
     "underscore": "~1.5.2",
     "docco": "~0.7.0"
+  },
+  "dependencies": {
+    "iced-runtime-3": ">=0.0.1"
   }
 }
