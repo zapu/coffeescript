@@ -258,6 +258,8 @@ exports.Base = class Base
     for child in @icedFlattenChildren()
       child.icedWalkAst o
 
+  containsAwait: () -> @contains((node)-> node instanceof Await)
+
   # Traverse children and check if there is any await statement. This
   # is used to generate an error when user tries to use an expression
   # with Await in illegal places, like If's condition, Call arguments,
@@ -268,7 +270,7 @@ exports.Base = class Base
     # visiting same nodes over and over) every time someone calls this
     # method.
 
-    if @contains((node)-> node instanceof Await)
+    if @containsAwait()
       @error "await'ed statements can't act as expressions"
 
   # End Iced Additions...
@@ -448,6 +450,13 @@ exports.Block = class Block extends Base
 
   icedTransform : (opts) ->
     obj = {}
+
+    # If we have a top-level await, wrap everything in a function.
+    if @containsAwait()
+      wrapper = new Code [], new Block [@expressions]
+      boundfunc = new Call((new Value wrapper, [new Access new Value new Literal 'call']), [new Literal 'this'])
+      @expressions = [boundfunc]
+
     @icedWalkAst obj
 
     # Add a runtime if necessary, but don't add a runtime for the REPL.

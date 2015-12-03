@@ -771,3 +771,29 @@ atest "autocb is illegal", (cb) ->
 '''
 
   cb true, {}
+
+# Nasty evals! But we can't sandbox those, we expect the evaluated
+# string to call our cb function.
+atest "can run toplevel await", (cb) ->
+  eval CoffeeScript.compile '''
+await delay defer()
+cb true, {}
+''', { bare: true }
+
+atest "can run toplevel await 2", (cb) ->
+  eval CoffeeScript.compile '''
+acc = 0
+for i in [0..5]
+  await delay defer()
+  acc += 1
+cb acc == 6, {}
+''', { bare: true }
+
+test "top level awaits are wrapped", ->
+  js = CoffeeScript.compile '''
+await delay defer()
+cb true, {}
+''', { bare: true }
+
+  eq js.trim().indexOf("(function() {"), 0
+
