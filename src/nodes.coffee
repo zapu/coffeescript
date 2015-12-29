@@ -7,7 +7,7 @@ Error.stackTraceLimit = Infinity
 
 {Scope} = require './scope'
 {RESERVED, STRICT_PROSCRIBED} = require './lexer'
-iced = require 'iced-runtime'
+iced = require 'iced-runtime-3'
 
 # Import the helpers we plan to use.
 {compact, flatten, extend, merge, del, starts, ends, some,
@@ -258,6 +258,21 @@ exports.Base = class Base
     for child in @icedFlattenChildren()
       child.icedWalkAst o
 
+  containsAwait: () -> @contains((node)-> node instanceof Await)
+
+  # Traverse children and check if there is any await statement. This
+  # is used to generate an error when user tries to use an expression
+  # with Await in illegal places, like If's condition, Call arguments,
+  # right side of Assign, etc.
+  icedStatementAssertion : () ->
+    # TODO: Ideally this would be detected and saved in one of the
+    # tree-walking routines, so we don't walk the tree (potentially
+    # visiting same nodes over and over) every time someone calls this
+    # method.
+
+    if @containsAwait()
+      @error "await'ed statements can't act as expressions"
+
   # End Iced Additions...
   #------
 
@@ -435,6 +450,13 @@ exports.Block = class Block extends Base
 
   icedTransform : (opts) ->
     obj = {}
+
+    # If we have a top-level await, wrap everything in a function.
+    if @containsAwait()
+      wrapper = new Code [], new Block [@expressions]
+      boundfunc = new Call((new Value wrapper, [new Access new Value new Literal 'call']), [new Literal 'this'])
+      @expressions = [boundfunc]
+
     @icedWalkAst obj
 
     # Add a runtime if necessary, but don't add a runtime for the REPL.
@@ -476,6 +498,22 @@ exports.Literal = class Literal extends Base
     return this if @value is 'continue' and not o?.loop
 
   compileNode: (o) ->
+    if @value is 'arguments' and o.scope.icedUseArguments
+      # TODO: Find a better way to supply icedArgumentsVar instead
+      # of this scope madness.
+
+      # Observe:
+
+      # bar = function(i, cb) {               # ~ PARENT 2
+      #     var __iced_it, __iced_passed_deferral, _arguments;
+      #     _arguments = arguments;
+      #     __iced_passed_deferral = iced.findDeferral(arguments);
+      #     __iced_it = (function(_this) {    # ~ PARENT 1
+      #       return function*() {
+      #           # ~ WE ARE HERE ~
+
+      @value = o.scope.parent.parent.icedArgumentsVar
+
     code = if @value is 'this'
       if o.scope.method?.bound then o.scope.method.context else @value
     else if @value.reserved
@@ -487,6 +525,14 @@ exports.Literal = class Literal extends Base
 
   toString: ->
     ' "' + @value + '"'
+
+  icedWalkAst: (o) ->
+    # Check if any of the code references `arguments` variable
+    # if we also have await construct. Arguments array will be
+    # stored in temporary variable at the beginning of function.
+    if @value is 'arguments' and o.awaitInFunc
+      o.foundArguments = true
+    this
 
 class exports.Undefined extends Base
   isAssignable: NO
@@ -523,6 +569,8 @@ exports.Return = class Return extends Base
     if expr and expr not instanceof Return then expr.compileToFragments o, level else super o, level
 
   compileNode: (o) ->
+    @icedStatementAssertion()
+
     answer = []
     # TODO: If we call expression.compile() here twice, we'll sometimes get back different results!
     answer.push @makeCode @tab + "return#{if @expression then " " else ""}"
@@ -776,6 +824,8 @@ exports.Call = class Call extends Base
 
   # Compile a vanilla function call.
   compileNode: (o) ->
+    @icedStatementAssertion()
+
     @variable?.front = @front
     compiledArray = Splat.compileSplattedArray o, @args, true
     if compiledArray.length
@@ -866,7 +916,7 @@ exports.Access = class Access extends Base
 
   compileToFragments: (o) ->
     name = @name.compileToFragments o
-    if IDENTIFIER.test fragmentsToText name
+    if (IDENTIFIER.test fragmentsToText name) or @name instanceof Defer
       name.unshift @makeCode "."
     else
       name.unshift @makeCode "["
@@ -1301,6 +1351,8 @@ exports.Assign = class Assign extends Base
   # we've been assigned to, for correct internal references. If the variable
   # has not been seen yet within the current scope, declare it.
   compileNode: (o) ->
+    @icedStatementAssertion()
+
     if isValue = @variable instanceof Value
       return @compilePatternMatch o if @variable.isArray() or @variable.isObject()
       return @compileSplice       o if @variable.isSplice()
@@ -1509,6 +1561,8 @@ exports.Code = class Code extends Base
   # arrow, generates a wrapper that saves the current value of `this` through
   # a closure.
   compileNode: (o) ->
+    if @foundAutocb
+      @error 'autocb is deprecated.'
 
     if @bound and o.scope.method?.bound
       @context = o.scope.method.context
@@ -1527,6 +1581,7 @@ exports.Code = class Code extends Base
     o.scope         = del(o, 'classScope') or @makeScope o.scope
     o.scope.shared  = del(o, 'sharedScope') or @icedgen
     o.scope.icedgen = @icedgen
+    o.scope.icedUseArguments = @icedUseArguments if @icedUseArguments
     o.indent        += TAB
     delete o.bare
     delete o.isExistentialEquals
@@ -1564,6 +1619,10 @@ exports.Code = class Code extends Base
       node.error "multiple parameters named #{name}" if name in uniqs
       uniqs.push name
     @body.makeReturn() unless wasEmpty or @noReturn
+    if @icedSaveArguments
+      arg_var = o.scope.freeVariable '_arguments'
+      o.scope.icedArgumentsVar = arg_var
+      @body.expressions.unshift new Assign (new Literal arg_var), (new Literal 'arguments')
     code = 'function'
     code += '*' if @isGenerator
     code += ' ' + @name if @ctor
@@ -1597,7 +1656,9 @@ exports.Code = class Code extends Base
     @error "Methods with `await` cannot be generators" if @isGenerator
 
     # the outer function must be bound to properly capture this.
-    @bound = true
+    # TODO: Should it? `@bound = true` here breaks class methods
+    # with await.
+    #@bound = true
 
     # Don't do the same operation the next time through
     @icedFlag = false
@@ -1611,13 +1672,18 @@ exports.Code = class Code extends Base
     f = new Value new Literal iced.const.ns
     f.add new Access new Value new Literal iced.const.findDeferral
     rhs = new Call f, [ new Value new Literal 'arguments' ]
-    body.push(new Assign @icedPassedDeferral, rhs)
+    body.push(new Assign @icedPassedDeferral, rhs, null, { param: true })
 
     # var __it = (function* (_this) {  [ @body ]} )(this);
     code = new Code [], (new Block [ @body ]), 'icedgen'
     code.isGenerator = true
+
+    if @icedFoundArguments
+      @icedSaveArguments = true
+      code.icedUseArguments = true
+
     rhs = new Call code, []
-    body.push(new Assign @icedIterator, rhs)
+    body.push(new Assign @icedIterator, rhs, null, { param: true })
 
     # __it.next();
     nxt = @icedIterator.copy()
@@ -1634,6 +1700,12 @@ exports.Code = class Code extends Base
     o.awaitInFile = o.awaitInFile or o_new.awaitInFile
     o.deferInFile = o.deferInFile or o_new.deferInFile
     @icedFlag = o_new.awaitInFunc
+    @icedFoundArguments = o.foundArguments or o_new.foundArguments
+
+    for param in @params
+      if param.name instanceof Literal and param.name.value is iced.const.autocb
+        @foundAutocb = true
+        break
     @
 
   icedTraceName : ->
@@ -1821,6 +1893,8 @@ exports.While = class While extends Base
   # *while* can be used as a part of a larger expression -- while loops may
   # return an array containing the computed result of each iteration.
   compileNode: (o) ->
+    @condition.icedStatementAssertion();
+
     o.indent += TAB
     set      = ''
     {body}   = this
@@ -2344,7 +2418,7 @@ class IcedRuntime extends Block
         InlineRuntime.generate(if window_val then window_val.copy() else null)
       when "node", "browserify", "interp"
         interp = (v is "interp")
-        qmodname = if interp then require_top_dir() else "'iced-runtime'"
+        qmodname = if interp then require_top_dir() else "'iced-runtime-3'"
         accessname = iced.const.ns
         file = new Literal qmodname
         access = new Access new Literal accessname
@@ -2355,7 +2429,8 @@ class IcedRuntime extends Block
         ns = new Value new Literal iced.const.ns
         new Assign ns, callv
       when "none" then null
-      else throw SyntaxError "unexpected flag IcedRuntime #{v}"
+      else
+        @error "unexpected flag IcedRuntime #{v}"
 
     @push inc if inc
 
@@ -2520,6 +2595,9 @@ exports.For = class For extends While
     guardPart   = ''
     defPart     = ''
     idt1        = @tab + TAB
+
+    source.icedStatementAssertion()
+
     if @range
       forPartFragments = source.compileToFragments merge o,
         {index: ivar, name, @step, isComplex: isComplexOrAssignable}
@@ -2614,6 +2692,8 @@ exports.Switch = class Switch extends Base
     this
 
   compileNode: (o) ->
+    @subject.icedStatementAssertion() if @subject
+
     idt1 = o.indent + TAB
     idt2 = o.indent = idt1 + TAB
     fragments = [].concat @makeCode(@tab + "switch ("),
@@ -2671,6 +2751,8 @@ exports.If = class If extends Base
   jumps: (o) -> @body.jumps(o) or @elseBody?.jumps(o)
 
   compileNode: (o) ->
+    @condition.icedStatementAssertion()
+
     if @isStatement o then @compileStatement o else @compileExpression o
 
   makeReturn: (res) ->

@@ -45,7 +45,7 @@ testRepl 'reads history file', (input, output, repl) ->
   eq '3', output.lastWrite()
 
 testRepl "starts with coffee prompt", (input, output) ->
-  eq 'coffee> ', output.lastWrite(0)
+  eq 'iced> ', output.lastWrite(0)
 
 testRepl "writes eval to output", (input, output) ->
   input.emitLine '1+1'
@@ -70,14 +70,14 @@ testRepl "empty command evaluates to undefined", (input, output) ->
 
 testRepl "ctrl-v toggles multiline prompt", (input, output) ->
   input.emit 'keypress', null, ctrlV
-  eq '------> ', output.lastWrite(0)
+  eq '----> ', output.lastWrite(0)
   input.emit 'keypress', null, ctrlV
-  eq 'coffee> ', output.lastWrite(0)
+  eq 'iced> ', output.lastWrite(0)
 
 testRepl "multiline continuation changes prompt", (input, output) ->
   input.emit 'keypress', null, ctrlV
   input.emitLine ''
-  eq '....... ', output.lastWrite(0)
+  eq '..... ', output.lastWrite(0)
 
 testRepl "evaluates multiline", (input, output) ->
   # Stubs. Could assert on their use.
@@ -105,6 +105,10 @@ testRepl "keeps running after runtime error", (input, output) ->
   input.emitLine 'a = b'
   input.emitLine 'a'
   eq 'undefined', output.lastWrite()
+
+testRepl "iced: handle awaits", (input, output) ->
+  input.emitLine 'a = -> await b defer()'
+  eq '[Function]', output.lastWrite()
 
 process.on 'exit', ->
   fs.unlinkSync historyFile

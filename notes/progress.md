@@ -7,9 +7,11 @@ more details, and a big todo list.
 ### Todo
   - [ ] Top-level `await`'s don't work
   - [ ] Babel/traceur plumbing to output runnable code on ES5 (! oy, looks painful).
-  - [ ] Test cases updates; remove `autocb` support
+  - [ ] Fix `autocb` or remove its support entirely
   - [ ] Maybe it's possible to use `o.scope.freeVariable`s for `__iced_it` and
         `__iced_passed_deferrals`,  but don't see how yet.
+  - [ ] fix awaits in expressions (see "can await in expressions" test)
+  - [ ] fix `package.json` to install as `icake` and `iced`.
 
 ### Input File:
 

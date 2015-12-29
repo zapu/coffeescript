@@ -119,7 +119,7 @@ exports.Lexer = class Lexer
       not prev.spaced and prev[0] is '@')
 
     # IcedCoffeeScript addition
-    forcedIdentifier = false if id is 'defer'
+    forcedIdentifier = false if id is 'defer' and not colon
 
     tag = 'IDENTIFIER'
 
