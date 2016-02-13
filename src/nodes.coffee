@@ -2409,6 +2409,9 @@ class IcedRuntime extends Block
     window_mode = false
     window_val = null
 
+    if v in ['inline']
+      return @makeCode @inlineRuntime()
+
     inc = null
     inc = switch (v)
       when "inline", "window"
@@ -2436,6 +2439,10 @@ class IcedRuntime extends Block
 
     if @isEmpty() then []
     else               super o
+
+  inlineRuntime: () ->
+    fs = require('fs')
+    "var iced = #{fs.readFileSync "extras/inline-runtime.js"};"
 
 #### Try
 
