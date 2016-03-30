@@ -17,7 +17,7 @@ icedTransform = (x, options) -> x.icedTransform options
 # The current CoffeeScript version number.
 exports.VERSION = '1.10.0'
 
-exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md']
+exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced', '.liticed', '.iced.md']
 
 # Expose helpers for testing.
 exports.helpers = helpers
