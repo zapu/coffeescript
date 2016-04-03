@@ -796,4 +796,3 @@ cb true, {}
 ''', { bare: true }
 
   eq js.trim().indexOf("(function() {"), 0
-

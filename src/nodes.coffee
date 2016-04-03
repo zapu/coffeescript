@@ -2406,20 +2406,18 @@ class IcedRuntime extends Block
     if o.runtime and not @foundDefer and not o.runforce
       v = "none"
 
-    window_mode = false
-    window_val = null
-
-    if v in ['inline']
-      return @makeCode @inlineRuntime()
+    # 'inline' and 'window' runtimes are emitted with makeCode and
+    # include extras/inline-runtime.js file.
+    switch (v)
+      when "inline"
+        return @makeCode @inlineRuntime('var iced')
+      when "window"
+        return @makeCode @inlineRuntime('window.iced')
 
     inc = null
-    inc = switch (v)
-      when "inline", "window"
-        window_mode = true if v is "window"
-        if window_mode
-          window_val = new Value new Literal v
-        InlineRuntime.generate(if window_val then window_val.copy() else null)
+    inc = switch(v)
       when "node", "browserify", "interp"
+        # Emit a `require` call.
         interp = (v is "interp")
         qmodname = if interp then require_top_dir() else "'iced-runtime-3'"
         accessname = iced.const.ns
@@ -2440,9 +2438,9 @@ class IcedRuntime extends Block
     if @isEmpty() then []
     else               super o
 
-  inlineRuntime: () ->
+  inlineRuntime: (lefthand) ->
     fs = require('fs')
-    "var iced = #{fs.readFileSync "extras/inline-runtime.js"};"
+    "#{lefthand} = #{fs.readFileSync "extras/inline-runtime.js"};"
 
 #### Try
 

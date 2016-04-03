@@ -188,9 +188,8 @@ task 'build:inline_runtime', 'build the inline iced3 runtime', ->
     }());
   """
 
-  # uglify fails with "Unexpected token operator" for some reason.
-  #unless process.env.MINIFY is 'false'
-  #  {code} = require('uglify-js').minify code, fromString: true
+  unless process.env.MINIFY is 'false'
+    {code} = require('uglify-js').minify code, fromString: true
 
   fs.writeFileSync 'extras/inline-runtime.js', header + '\n' + code
   console.log 'built inline iced3 runtime'
@@ -352,12 +351,23 @@ runTests = (CoffeeScript) ->
     '--harmony-generators' in process.execArgv
   files.splice files.indexOf('generators.coffee'), 1 if not generatorsAreAvailable
 
+  if not global.testingBrowser
+    # If we are not testing in browser, might as well test our inline
+    # runtime.
+    runtime = 'inline'
+  else
+    # But if we are, emitting runtime inline is not going to work. So
+    # set the runtime as a global (as it it would have been done in
+    # browser environment), and pass 'none' to the compiler.
+    global.iced = require('iced-runtime-3')
+    runtime = 'none'
+
   for file in files when helpers.isCoffee file
     literate = helpers.isLiterate file
     currentFile = filename = path.join 'test', file
     code = fs.readFileSync filename
     try
-      CoffeeScript.run code.toString(), {filename, literate, runtime: 'inline'}
+      CoffeeScript.run code.toString(), {filename, literate, runtime: runtime}
     catch error
       failures.push {filename, error}
   return !failures.length
