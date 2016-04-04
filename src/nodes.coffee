@@ -2366,7 +2366,7 @@ exports.Await = class Await extends Base
 
   children: ['body']
 
-  isStatement: -> YES
+  isStatement: YES
   makeReturn : THIS
 
   compileNode: (o) ->
