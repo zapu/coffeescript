@@ -40,6 +40,6 @@
     "docco": "~0.7.0"
   },
   "dependencies": {
-    "iced-runtime-3": ">=0.0.1"
+    "iced-runtime-3": ">=3.0.4"
   }
 }
