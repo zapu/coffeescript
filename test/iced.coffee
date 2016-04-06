@@ -718,6 +718,57 @@ atest 'using defer in other contexts', (cb) ->
   await delay defer()
   a.defer()
 
+atest 'await race condition with immediate defer (issue #175)', (test_cb) ->
+  foo = (cb) ->
+    cb()
+
+  bar = (cb) ->
+    # The bug here was that after both "defer()" calls, Deferrals
+    # counter should be 2, so it knows it has to wait for two
+    # callbacks. But because foo calls cb immediately, Deferalls is
+    # considered completed before it reaches second defer() call.
+    await
+      foo defer()
+      delay defer()
+
+    await delay defer()
+    cb()
+
+  await bar defer()
+
+  test_cb true, {}
+
+atest 'await race condition pesky conditions (issue #175)', (test_cb) ->
+  foo = (cb) -> cb()
+
+  # Because just checking for child node count is not enough
+  await
+    if 1 == 1
+      foo defer()
+      delay defer()
+
+  test_cb true, {}
+
+atest 'await potential race condition but not really', (test_cb) ->
+  await
+    if test_cb == 'this is not even a string'
+      delay defer()
+    delay defer()
+
+  test_cb true, {}
+
+atest 'awaits that do not really wait for anything', (test_cb) ->
+  await
+    if test_cb == 'this is not even a string'
+      delay defer()
+      delay defer()
+
+  await
+    if test_cb == 'this is not even a string'
+      delay defer()
+
+  test_cb true, {}
+
 # helper to assert that a string should fail compilation
 cantCompile = (code) ->
   throws -> CoffeeScript.compile code
