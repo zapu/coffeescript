@@ -430,6 +430,9 @@ compileOptions = (filename, base) ->
     runtime: opts.runtime
     runforce: opts.runforce
   }
+
+  handleIcedOptions answer
+
   if filename
     if base
       cwd = process.cwd()
