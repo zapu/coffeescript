@@ -11,7 +11,8 @@ iced = require 'iced-runtime-3'
 
 # Import the helpers we plan to use.
 {compact, flatten, extend, merge, del, starts, ends, some,
-addLocationDataFn, locationDataToString, throwSyntaxError} = require './helpers'
+addLocationDataFn, locationDataToString, throwSyntaxError,
+strToJavascript} = require './helpers'
 
 # Functions required by parser
 exports.extend = extend
@@ -2410,7 +2411,7 @@ class IcedRuntime extends Block
     # include extras/inline-runtime.js file.
     switch (v)
       when "inline"
-        return @makeCode @inlineRuntime('var iced')
+        return @makeCode 'var iced;\n' + @inlineRuntime('iced')
       when "window"
         return @makeCode @inlineRuntime('window.iced')
 
@@ -2439,8 +2440,24 @@ class IcedRuntime extends Block
     else               super o
 
   inlineRuntime: (lefthand) ->
-    fs = require('fs')
-    "#{lefthand} = #{fs.readFileSync "extras/inline-runtime.js"};"
+    if iced.text
+      # If the compiler is ran from the browser and it uses the inline
+      # runtime, the runtime will already have the 'text' property we
+      # can just "pass along".
+      runtime_str = iced.text
+    else
+      # If not (compiler is stand alone), use readFileSync to get the
+      # runtime.
+      fs = require('fs')
+      runtime_str = fs.readFileSync "extras/inline-runtime.js", 'utf-8'
+
+    runtime_str_str = strToJavascript runtime_str
+
+    """
+    #{lefthand} = #{runtime_str};
+    #{lefthand}.text = #{runtime_str_str};
+
+    """
 
 #### Try
 

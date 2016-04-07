@@ -137,8 +137,14 @@ task 'build:parser', 'rebuild the Jison parser (run build first)', ->
 
 task 'build:browser', 'rebuild the merged script for inclusion in the browser', ->
   code = ''
+
+  runtime_str = fs.readFileSync "extras/inline-runtime.js", 'utf-8'
+  runtime_str_str = helpers.strToJavascript runtime_str
+
   code = """
-    require['iced-runtime-3'] = #{fs.readFileSync "extras/inline-runtime.js"};
+    require['iced-runtime-3'] = #{runtime_str};
+    require['iced-runtime-3'].text = #{runtime_str_str};
+
   """
   for name in ['helpers', 'rewriter', 'lexer', 'parser', 'scope', 'nodes', 'sourcemap', 'coffee-script', 'browser']
     code += """
@@ -163,13 +169,12 @@ task 'build:browser', 'rebuild the merged script for inclusion in the browser', 
       }
     }(this));
   """
-  unless process.env.MINIFY is 'false'
-    {code} = require('uglify-js').minify code, fromString: true
+
   fs.writeFileSync 'extras/coffee-script.js', header + '\n' + code
   console.log "built ... running browser tests:"
   invoke 'test:browser'
 
-task 'build:inline_runtime', 'build the inline iced3 runtime', ->
+task 'build:inline-runtime', 'build the inline iced3 runtime', ->
   runtime_dir = path.dirname require.resolve 'iced-runtime-3'
   code = ''
   for name in ['const', 'runtime', 'library', 'main']
@@ -187,9 +192,6 @@ task 'build:inline_runtime', 'build the inline iced3 runtime', ->
       return require['./main'];
     }());
   """
-
-  unless process.env.MINIFY is 'false'
-    {code} = require('uglify-js').minify code, fromString: true
 
   fs.writeFileSync 'extras/inline-runtime.js', header + '\n' + code
   console.log 'built inline iced3 runtime'
@@ -352,22 +354,16 @@ runTests = (CoffeeScript) ->
   files.splice files.indexOf('generators.coffee'), 1 if not generatorsAreAvailable
 
   if not global.testingBrowser
-    # If we are not testing in browser, might as well test our inline
-    # runtime.
-    runtime = 'inline'
+    runtime = 'node'
   else
-    # But if we are, emitting runtime inline is not going to work. So
-    # set the runtime as a global (as it it would have been done in
-    # browser environment), and pass 'none' to the compiler.
-    global.iced = require('iced-runtime-3')
-    runtime = 'none'
+    runtime = 'inline'
 
   for file in files when helpers.isCoffee file
     literate = helpers.isLiterate file
     currentFile = filename = path.join 'test', file
     code = fs.readFileSync filename
     try
-      CoffeeScript.run code.toString(), {filename, literate, runtime: runtime}
+      CoffeeScript.run code.toString(), { filename, literate, runtime }
     catch error
       failures.push {filename, error}
   return !failures.length
