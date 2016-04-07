@@ -138,15 +138,12 @@ task 'build:parser', 'rebuild the Jison parser (run build first)', ->
 task 'build:browser', 'rebuild the merged script for inclusion in the browser', ->
   code = ''
 
-  runtime_str = fs.readFileSync "extras/inline-runtime.js", 'utf-8'
-  runtime_str_str = helpers.strToJavascript runtime_str
-
-  code = """
-    require['iced-runtime-3'] = #{runtime_str};
-    require['iced-runtime-3'].text = #{runtime_str_str};
+  code += """
+    require['iced-runtime-3'] = #{fs.readFileSync "lib/coffee-script/inline-runtime.js"};
 
   """
-  for name in ['helpers', 'rewriter', 'lexer', 'parser', 'scope', 'nodes', 'sourcemap', 'coffee-script', 'browser']
+
+  for name in ['helpers', 'rewriter', 'lexer', 'parser', 'scope', 'nodes', 'sourcemap', 'coffee-script', 'browser', 'inline-runtime-str']
     code += """
       require['./#{name}'] = (function() {
         var exports = {}, module = {exports: exports};
@@ -154,6 +151,7 @@ task 'build:browser', 'rebuild the merged script for inclusion in the browser', 
         return module.exports;
       })();
     """
+
   code = """
     (function(root) {
       var CoffeeScript = function() {
@@ -193,7 +191,8 @@ task 'build:inline-runtime', 'build the inline iced3 runtime', ->
     }());
   """
 
-  fs.writeFileSync 'extras/inline-runtime.js', header + '\n' + code
+  fs.writeFileSync 'lib/coffee-script/inline-runtime.js', header + '\n' + code
+  fs.writeFileSync 'lib/coffee-script/inline-runtime-str.js', "module.exports = #{helpers.strToJavascript(code)}"
   console.log 'built inline iced3 runtime'
 
 task 'doc:site', 'watch and continually rebuild the documentation for the website', ->

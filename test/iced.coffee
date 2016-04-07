@@ -835,9 +835,7 @@ test "helpers.strToJavascript and back", ->
   # We use this to "encode" JavaScript files so naturally this test
   # should try to encode some JavaScript code snippet.
   test_string = str_to_js.toString()
-
   javascript_literal = str_to_js test_string
-
   eval "var back_to_string = #{javascript_literal};"
 
   eq back_to_string, test_string
