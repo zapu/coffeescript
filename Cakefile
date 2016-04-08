@@ -137,7 +137,13 @@ task 'build:parser', 'rebuild the Jison parser (run build first)', ->
 
 task 'build:browser', 'rebuild the merged script for inclusion in the browser', ->
   code = ''
-  for name in ['helpers', 'rewriter', 'lexer', 'parser', 'scope', 'nodes', 'sourcemap', 'coffee-script', 'browser']
+
+  code += """
+    require['iced-runtime-3'] = #{fs.readFileSync "lib/coffee-script/inline-runtime.js"};
+
+  """
+
+  for name in ['helpers', 'rewriter', 'lexer', 'parser', 'scope', 'nodes', 'sourcemap', 'coffee-script', 'browser', 'inline-runtime-str']
     code += """
       require['./#{name}'] = (function() {
         var exports = {}, module = {exports: exports};
@@ -145,6 +151,7 @@ task 'build:browser', 'rebuild the merged script for inclusion in the browser', 
         return module.exports;
       })();
     """
+
   code = """
     (function(root) {
       var CoffeeScript = function() {
@@ -160,12 +167,33 @@ task 'build:browser', 'rebuild the merged script for inclusion in the browser', 
       }
     }(this));
   """
-  unless process.env.MINIFY is 'false'
-    {code} = require('uglify-js').minify code, fromString: true
+
   fs.writeFileSync 'extras/coffee-script.js', header + '\n' + code
   console.log "built ... running browser tests:"
   invoke 'test:browser'
 
+task 'build:inline-runtime', 'build the inline iced3 runtime', ->
+  runtime_dir = path.dirname require.resolve 'iced-runtime-3'
+  code = ''
+  for name in ['const', 'runtime', 'library', 'main']
+    code += """
+      require['./#{name}'] = (function() {
+        var exports = {}, module = {exports: exports};
+        #{fs.readFileSync "#{runtime_dir}/#{name}.js"}
+        return module.exports;
+      })();
+    """
+  code = """
+    (function() {
+      function require(path){ return require[path]; }
+      #{code}
+      return require['./main'];
+    }());
+  """
+
+  fs.writeFileSync 'lib/coffee-script/inline-runtime.js', header + '\n' + code
+  fs.writeFileSync 'lib/coffee-script/inline-runtime-str.js', "module.exports = #{helpers.strToJavascript(code)}"
+  console.log 'built inline iced3 runtime'
 
 task 'doc:site', 'watch and continually rebuild the documentation for the website', ->
   source = 'documentation/index.html.js'
@@ -324,12 +352,17 @@ runTests = (CoffeeScript) ->
     '--harmony-generators' in process.execArgv
   files.splice files.indexOf('generators.coffee'), 1 if not generatorsAreAvailable
 
+  if not global.testingBrowser
+    runtime = 'node'
+  else
+    runtime = 'inline'
+
   for file in files when helpers.isCoffee file
     literate = helpers.isLiterate file
     currentFile = filename = path.join 'test', file
     code = fs.readFileSync filename
     try
-      CoffeeScript.run code.toString(), {filename, literate}
+      CoffeeScript.run code.toString(), { filename, literate, runtime }
     catch error
       failures.push {filename, error}
   return !failures.length

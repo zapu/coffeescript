@@ -848,3 +848,45 @@ cb true, {}
 
   eq js.trim().indexOf("(function() {"), 0
 
+atest "eval iced", (test_cb) ->
+  global.cb = ->
+    delete global.cb
+    test_cb true, {}
+
+  result = CoffeeScript.eval """
+await setTimeout defer(), 1
+cb()
+""", { runtime: 'inline' }
+
+if vm = require? 'vm'
+  atest "eval sandbox iced", (test_cb) ->
+    createContext = vm.Script.createContext ? vm.createContext
+    sandbox = createContext()
+    sandbox.delay = delay
+    sandbox.cb = ->
+      test_cb true, {}
+
+    result = CoffeeScript.eval """
+  await delay defer()
+  cb()
+  """, { runtime: 'inline', sandbox }
+
+atest "iced coffee all the way down", (cb) ->
+  js = CoffeeScript.compile """
+  await delay defer()
+  js_inside = CoffeeScript.compile 'await delay defer()\\ncb true, {}', { runtime: 'inline' }
+  eval js_inside
+  """, { bare: true, runtime: 'inline' }
+
+  eval js
+
+test "helpers.strToJavascript and back", ->
+  str_to_js = CoffeeScript.helpers.strToJavascript
+
+  # We use this to "encode" JavaScript files so naturally this test
+  # should try to encode some JavaScript code snippet.
+  test_string = str_to_js.toString()
+  javascript_literal = str_to_js test_string
+  eval "var back_to_string = #{javascript_literal};"
+
+  eq back_to_string, test_string
