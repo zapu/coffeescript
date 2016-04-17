@@ -2350,6 +2350,12 @@ exports.Await = class Await extends Base
       func_assignment = new Assign func_lhs, func_rhs, "object"
       assignments.push func_assignment
 
+    if o.filename
+      fn_lhs = new Value new Literal iced.const.filename
+      fn_rhs = new Value new Literal quote_path_for_emission o.filename
+      fn_assignment = new Assign fn_lhs, fn_rhs, "object"
+      assignments.push fn_assignment
+
     # { parent : __iced_passed_deferrals, funcname : foo }
     trace = new Obj assignments, true
 
