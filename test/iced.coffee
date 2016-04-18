@@ -890,3 +890,37 @@ test "helpers.strToJavascript and back", ->
   eval "var back_to_string = #{javascript_literal};"
 
   eq back_to_string, test_string
+
+# Tests if we are emitting 'traces' correctly and if runtime uses
+# them to generate proper errors.
+atest "overused deferral error message", (test_cb) ->
+  real_warn = console.error
+
+  console.error = (msg) ->
+    console.error = real_warn
+    if msg.indexOf('test/iced.coffee:') != -1 and msg.indexOf('<anonymous>') != -1
+      test_cb true, {}
+    else
+      console.log 'Unexpected overused deferral msg:', msg
+      test_cb false, {}
+
+  foo = (cb) -> cb(); cb()
+  await foo defer()
+
+atest "overused deferral error message 2", (test_cb) ->
+  real_warn = console.error
+
+  console.error = (msg) ->
+    console.error = real_warn
+    if msg.indexOf('test/iced.coffee:') != -1 and msg.indexOf('A.b') != -1
+      test_cb true, {}
+    else
+      console.log 'Unexpected overused deferral msg:', msg
+      test_cb false, {}
+
+  class A
+    b: () ->
+      foo = (cb) -> cb(); cb()
+      await foo defer()
+
+  new A().b()
