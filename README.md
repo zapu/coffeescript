@@ -1,11 +1,10 @@
-            {
-         }   }   {
-        {   {  }  }
-         }   }{  {
-        {  }{  }  }                    _____       __  __
-       { }{ }{  { }                   / ____|     / _|/ _|
-     .- { { }  { }} -.               | |     ___ | |_| |_ ___  ___
-    (  { } { } { } }  )              | |    / _ \|  _|  _/ _ \/ _ \
+
+                                      ICED
+
+                                       _____       __  __
+                                      / ____|     / _|/ _|
+     .- ----------- -.               | |     ___ | |_| |_ ___  ___
+    (  (ice cubes)    )              | |    / _ \|  _|  _/ _ \/ _ \
     |`-..________ ..-'|              | |___| (_) | | | ||  __/  __/
     |                 |               \_____\___/|_| |_| \___|\___|
     |                 ;--.
@@ -19,6 +18,19 @@
                                                         |_|
 
 CoffeeScript is a little language that compiles into JavaScript.
+IcedCoffeeScript is a superset of CoffeeScript that adds two new
+keywords: `await` and `defer`.
+
+## Iced v3 Alpha
+
+We're current alpha-testing Iced v3, which emits ES6 with `yield`s and generators.
+Relative to Iced v2, this version stays much closer to the CoffeeScript main body of
+code, and emits much simpler code. The downside is that the target must run ES6, or
+be transpiled into ES5 with a further step not handled by the this package.
+
+## How to Build
+
+(Details here)
 
 ## Installation
 
