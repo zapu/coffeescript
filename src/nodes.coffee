@@ -1459,6 +1459,16 @@ exports.Assign = class Assign extends Base
           @value.klass = new Value @variable.base, properties
           @value.name  = name
           @value.variable = @variable
+      else if @variable.base instanceof Literal
+        # Try to pass the variable to value if it's a simple function
+        # assignment, like:
+        #
+        # > foo = (param) -> function_body
+        #
+        # so iced can generate better debug traces, instead of saying
+        # that error was in "<anonymous>". Most functions in coffee
+        # anonymous.
+        @value.variable = @variable
     unless @context
       varBase = @variable.unwrapAll()
       unless varBase.isAssignable()
@@ -1814,6 +1824,7 @@ exports.Code = class Code extends Base
     parts = []
     parts.push n if (n = @klass?.base?.value)?
     parts.push n if (n = @name?.name?.value)?
+    parts.push "<anonymous: #{n}>" if (n = @variable?.base?.value)?
     parts.join '.'
 
   # /IcedCoffeeScript Additions
