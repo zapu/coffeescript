@@ -7,23 +7,23 @@
     "coffeescript",
     "compiler"
   ],
-  "author": "Jeremy Ashkenas + Maxwell Krohn",
+  "author": "Jeremy Ashkenas + Maxwell Krohn + Michał Zochniak",
   "version": "110.0.0",
   "license": "MIT",
   "engines": {
     "node": ">=0.8.0"
   },
   "directories": {
-    "lib": "./lib/coffee-script"
+    "lib": "./lib-iced/coffee-script"
   },
-  "main": "./lib/coffee-script/coffee-script",
+  "main": "./lib-iced/coffee-script/coffee-script",
   "bin": {
     "iced": "./bin/coffee",
     "icake": "./bin/cake"
   },
   "preferGlobal": true,
   "scripts": {
-    "test":         "node ./bin/cake test",
+    "test": "node ./bin/cake test",
     "test-harmony": "node --harmony ./bin/cake test"
   },
   "homepage": "http://maxtaco.github.io/coffee-script",
