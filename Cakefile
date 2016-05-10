@@ -1,9 +1,9 @@
 fs            = require 'fs'
 path          = require 'path'
 _             = require 'underscore'
-CoffeeScript  = require './lib/coffee-script'
+CoffeeScript  = require './lib-iced/coffee-script'
 {spawn, exec} = require 'child_process'
-helpers       = require './lib/coffee-script/helpers'
+helpers       = require './lib-iced/coffee-script/helpers'
 
 # ANSI Terminal Colors.
 bold = red = green = reset = ''
@@ -28,7 +28,7 @@ header = """
 build = (cb) ->
   files = fs.readdirSync 'src'
   files = ('src/' + file for file in files when file.match(/\.(lit)?coffee$/))
-  run ['-c', '-o', 'lib/coffee-script'].concat(files), cb
+  run ['-c', '-o', 'lib-iced/coffee-script'].concat(files), cb
 
 # Run a CoffeeScript through our node/coffee interpreter.
 run = (args, cb) ->
@@ -96,7 +96,7 @@ option '-p', '--prefix [DIR]', 'set the installation prefix for `cake install`'
 
 task 'install', 'install CoffeeScript into /usr/local (or --prefix)', (options) ->
   base = options.prefix or '/usr/local'
-  lib  = "#{base}/lib/coffee-script"
+  lib  = "#{base}/lib-iced/coffee-script"
   bin  = "#{base}/bin"
   node = "~/.node_libraries/coffee-script"
   console.log   "Installing CoffeeScript to #{lib}"
@@ -108,7 +108,7 @@ task 'install', 'install CoffeeScript into /usr/local (or --prefix)', (options) 
     "ln -sfn #{lib}/bin/coffee #{bin}/coffee"
     "ln -sfn #{lib}/bin/cake #{bin}/cake"
     "mkdir -p ~/.node_libraries"
-    "ln -sfn #{lib}/lib/coffee-script #{node}"
+    "ln -sfn #{lib}/lib-iced/coffee-script #{node}"
   ].join(' && '), (err, stdout, stderr) ->
     if err then console.log stderr.trim() else log 'done', green
   )
@@ -119,7 +119,7 @@ task 'build', 'build the CoffeeScript language from source', build
 task 'build:full', 'rebuild the source twice, and run the tests', ->
   build ->
     build ->
-      csPath = './lib/coffee-script'
+      csPath = './lib-iced/coffee-script'
       csDir  = path.dirname require.resolve csPath
 
       for mod of require.cache when csDir is mod[0 ... csDir.length]
@@ -132,14 +132,14 @@ task 'build:full', 'rebuild the source twice, and run the tests', ->
 task 'build:parser', 'rebuild the Jison parser (run build first)', ->
   helpers.extend global, require('util')
   require 'jison'
-  parser = require('./lib/coffee-script/grammar').parser
-  fs.writeFile 'lib/coffee-script/parser.js', parser.generate()
+  parser = require('./lib-iced/coffee-script/grammar').parser
+  fs.writeFile 'lib-iced/coffee-script/parser.js', parser.generate()
 
 task 'build:browser', 'rebuild the merged script for inclusion in the browser', ->
   code = ''
 
   code += """
-    require['iced-runtime-3'] = #{fs.readFileSync "lib/coffee-script/inline-runtime.js"};
+    require['iced-runtime-3'] = #{fs.readFileSync "lib-iced/coffee-script/inline-runtime.js"};
 
   """
 
@@ -147,7 +147,7 @@ task 'build:browser', 'rebuild the merged script for inclusion in the browser', 
     code += """
       require['./#{name}'] = (function() {
         var exports = {}, module = {exports: exports};
-        #{fs.readFileSync "lib/coffee-script/#{name}.js"}
+        #{fs.readFileSync "lib-iced/coffee-script/#{name}.js"}
         return module.exports;
       })();
     """
@@ -168,7 +168,7 @@ task 'build:browser', 'rebuild the merged script for inclusion in the browser', 
     }(this));
   """
 
-  fs.writeFileSync 'extras/coffee-script.js', header + '\n' + code
+  fs.writeFileSync 'extras/iced-coffee-script.js', header + '\n' + code
   console.log "built ... running browser tests:"
   invoke 'test:browser'
 
@@ -191,8 +191,8 @@ task 'build:inline-runtime', 'build the inline iced3 runtime', ->
     }());
   """
 
-  fs.writeFileSync 'lib/coffee-script/inline-runtime.js', header + '\n' + code
-  fs.writeFileSync 'lib/coffee-script/inline-runtime-str.js', "module.exports = #{helpers.strToJavascript(code)}"
+  fs.writeFileSync 'lib-iced/coffee-script/inline-runtime.js', header + '\n' + code
+  fs.writeFileSync 'lib-iced/coffee-script/inline-runtime-str.js', "module.exports = #{helpers.strToJavascript(code)}"
   console.log 'built inline iced3 runtime'
 
 task 'doc:site', 'watch and continually rebuild the documentation for the website', ->
@@ -221,7 +221,7 @@ task 'doc:underscore', 'rebuild the Underscore.coffee documentation page', ->
     throw err if err
 
 task 'bench', 'quick benchmark of compilation time', ->
-  {Rewriter} = require './lib/coffee-script/rewriter'
+  {Rewriter} = require './lib-iced/coffee-script/rewriter'
   sources = ['coffee-script', 'grammar', 'helpers', 'lexer', 'nodes', 'rewriter']
   coffee  = sources.map((name) -> fs.readFileSync "src/#{name}.coffee").join '\n'
   litcoffee = fs.readFileSync("src/scope.litcoffee").toString()
@@ -254,7 +254,7 @@ runTests = (CoffeeScript) ->
 
   # Convenience aliases.
   global.CoffeeScript = CoffeeScript
-  global.Repl = require './lib/coffee-script/repl'
+  global.Repl = require './lib-iced/coffee-script/repl'
 
   # Our test helper function for delimiting different test cases.
   global.test = (description, fn) ->
@@ -373,7 +373,7 @@ task 'test', 'run the CoffeeScript language test suite', ->
 
 
 task 'test:browser', 'run the test suite against the merged browser script', ->
-  source = fs.readFileSync 'extras/coffee-script.js', 'utf-8'
+  source = fs.readFileSync 'extras/iced-coffee-script.js', 'utf-8'
   result = {}
   global.testingBrowser = yes
   (-> eval source).call result
