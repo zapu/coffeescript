@@ -114,16 +114,20 @@ exports.Lexer = class Lexer
       @token 'FROM', id
       return id.length
     [..., prev] = @tokens
-    forcedIdentifier = colon or prev? and
-      (prev[0] in ['.', '?.', '::', '?::'] or
-      not prev.spaced and prev[0] is '@')
 
-    # IcedCoffeeScript addition
-    forcedIdentifier = false if id is 'defer' and not colon
+    tag =
+      if colon or prev? and
+         (prev[0] in ['.', '?.', '::', '?::'] or
+         not prev.spaced and prev[0] is '@')
+        'PROPERTY'
+      else
+        'IDENTIFIER'
 
-    tag = 'IDENTIFIER'
+    # Iced addition
+    if id is 'defer' and not colon
+      tag = 'IDENTIFIER'
 
-    if not forcedIdentifier and (id in JS_KEYWORDS or id in COFFEE_KEYWORDS)
+    if tag is 'IDENTIFIER' and (id in JS_KEYWORDS or id in COFFEE_KEYWORDS)
       tag = id.toUpperCase()
       if tag is 'WHEN' and @tag() in LINE_BREAK
         tag = 'LEADING_WHEN'
@@ -143,15 +147,10 @@ exports.Lexer = class Lexer
             poppedToken = @tokens.pop()
             id = '!' + id
 
-    if id in JS_FORBIDDEN
-      if forcedIdentifier
-        tag = 'IDENTIFIER'
-        id  = new String id
-        id.reserved = yes
-      else if id in RESERVED
-        @error "reserved word '#{id}'", length: id.length
+    if tag is 'IDENTIFIER' and id in RESERVED
+      @error "reserved word '#{id}'", length: id.length
 
-    unless forcedIdentifier
+    unless tag is 'PROPERTY'
       if id in COFFEE_ALIASES
         alias = id
         id = COFFEE_ALIAS_MAP[id]
@@ -160,12 +159,12 @@ exports.Lexer = class Lexer
         when '==', '!='          then 'COMPARE'
         when '&&', '||'          then 'LOGIC'
         when 'true', 'false'     then 'BOOL'
-        when 'break', 'continue' then 'STATEMENT'
+        when 'break', 'continue', \
+             'debugger'          then 'STATEMENT'
         else  tag
 
     tagToken = @token tag, id, 0, idLength
     tagToken.origin = [tag, alias, tagToken[2]] if alias
-    tagToken.variable = not forcedIdentifier
     if poppedToken
       [tagToken[2].first_line, tagToken[2].first_column] =
         [poppedToken[2].first_line, poppedToken[2].first_column]
@@ -191,10 +190,15 @@ exports.Lexer = class Lexer
     else if /^0\d+/.test number
       @error "octal literal '#{number}' must be prefixed with '0o'", length: lexedLength
     if octalLiteral = /^0o([0-7]+)/.exec number
-      number = '0x' + parseInt(octalLiteral[1], 8).toString 16
-    if binaryLiteral = /^0b([01]+)/.exec number
-      number = '0x' + parseInt(binaryLiteral[1], 2).toString 16
-    @token 'NUMBER', number, 0, lexedLength
+      numberValue = parseInt(octalLiteral[1], 8)
+      number = "0x#{numberValue.toString 16}"
+    else if binaryLiteral = /^0b([01]+)/.exec number
+      numberValue = parseInt(binaryLiteral[1], 2)
+      number = "0x#{numberValue.toString 16}"
+    else
+      numberValue = parseFloat(number)
+    tag = if numberValue is Infinity then 'INFINITY' else 'NUMBER'
+    @token tag, number, 0, lexedLength
     lexedLength
 
   # Matches strings, including multi-line strings, as well as heredocs, with or without
@@ -306,7 +310,7 @@ exports.Lexer = class Lexer
     end
 
   # Matches newlines, indents, and outdents, and determines which is which.
-  # If we can detect that the current line is continued onto the the next line,
+  # If we can detect that the current line is continued onto the next line,
   # then the newline is suppressed:
   #
   #     elements
@@ -411,14 +415,20 @@ exports.Lexer = class Lexer
       value = @chunk.charAt 0
     tag  = value
     [..., prev] = @tokens
-    if value is '=' and prev
-      if not prev[1].reserved and prev[1] in JS_FORBIDDEN
-        prev = prev.origin if prev.origin
-        @error "reserved word '#{prev[1]}' can't be assigned", prev[2]
-      if prev[1] in ['||', '&&']
+
+    if prev and value in ['=', COMPOUND_ASSIGN...]
+      skipToken = false
+      if value is '=' and prev[1] in ['||', '&&'] and not prev.spaced
         prev[0] = 'COMPOUND_ASSIGN'
         prev[1] += '='
-        return value.length
+        prev = @tokens[@tokens.length - 2]
+        skipToken = true
+      if prev and prev[0] isnt 'PROPERTY'
+        origin = prev.origin ? prev
+        message = isUnassignable prev[1], origin[1]
+        @error message, origin[2] if message
+      return value.length if skipToken
+
     if value is ';'
       @seenFor = no
       tag = 'TERMINATOR'
@@ -744,6 +754,21 @@ exports.Lexer = class Lexer
         {first_line, first_column, last_column: first_column + (options.length ? 1) - 1}
     throwSyntaxError message, location
 
+# Helper functions
+# ----------------
+
+isUnassignable = (name, displayName = name) -> switch
+  when name in [JS_KEYWORDS..., COFFEE_KEYWORDS...]
+    "keyword '#{displayName}' can't be assigned"
+  when name in STRICT_PROSCRIBED
+    "'#{displayName}' can't be assigned"
+  when name in RESERVED
+    "reserved word '#{displayName}' can't be assigned"
+  else
+    false
+
+exports.isUnassignable = isUnassignable
+
 # Constants
 # ---------
 
@@ -757,7 +782,10 @@ JS_KEYWORDS = [
 ]
 
 # CoffeeScript-only keywords.
-COFFEE_KEYWORDS = ['undefined', 'then', 'unless', 'until', 'loop', 'of', 'by', 'when']
+COFFEE_KEYWORDS = [
+  'undefined', 'Infinity', 'NaN'
+  'then', 'unless', 'until', 'loop', 'of', 'by', 'when'
+]
 
 # IcedCoffeeScript Additions
 COFFEE_KEYWORDS = COFFEE_KEYWORDS.concat [ 'await', 'defer' ]
@@ -785,14 +813,11 @@ RESERVED = [
   'protected', 'public', 'static'
 ]
 
-STRICT_PROSCRIBED = ['arguments', 'eval', 'yield*']
+STRICT_PROSCRIBED = ['arguments', 'eval']
 
 # The superset of both JavaScript keywords and reserved words, none of which may
 # be used as identifiers or properties.
-JS_FORBIDDEN = JS_KEYWORDS.concat(RESERVED).concat(STRICT_PROSCRIBED)
-
-exports.RESERVED = RESERVED.concat(JS_KEYWORDS).concat(COFFEE_KEYWORDS).concat(STRICT_PROSCRIBED)
-exports.STRICT_PROSCRIBED = STRICT_PROSCRIBED
+exports.JS_FORBIDDEN = JS_KEYWORDS.concat(RESERVED).concat(STRICT_PROSCRIBED)
 
 # The character code of the nasty Microsoft madness otherwise known as the BOM.
 BOM = 65279
@@ -923,9 +948,9 @@ BOOL = ['TRUE', 'FALSE']
 # Tokens which could legitimately be invoked or indexed. An opening
 # parentheses or bracket following these tokens will be recorded as the start
 # of a function invocation or indexing operation.
-CALLABLE  = ['IDENTIFIER', ')', ']', '?', '@', 'THIS', 'SUPER']
+CALLABLE  = ['IDENTIFIER', 'PROPERTY', ')', ']', '?', '@', 'THIS', 'SUPER']
 INDEXABLE = CALLABLE.concat [
-  'NUMBER', 'STRING', 'STRING_END', 'REGEX', 'REGEX_END'
+  'NUMBER', 'INFINITY', 'NAN', 'STRING', 'STRING_END', 'REGEX', 'REGEX_END'
   'BOOL', 'NULL', 'UNDEFINED', '}', '::'
 ]
 

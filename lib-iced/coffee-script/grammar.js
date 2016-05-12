@@ -44,7 +44,7 @@
     Line: [o('Expression'), o('Statement'), o('YieldReturn')],
     Statement: [
       o('Return'), o('Comment'), o('STATEMENT', function() {
-        return new Literal($1);
+        return new StatementLiteral($1);
       }), o('Await')
     ],
     Await: [
@@ -73,39 +73,46 @@
     ],
     Identifier: [
       o('IDENTIFIER', function() {
-        return new Literal($1);
+        return new IdentifierLiteral($1);
+      })
+    ],
+    Property: [
+      o('PROPERTY', function() {
+        return new PropertyName($1);
       })
     ],
     AlphaNumeric: [
       o('NUMBER', function() {
-        return new Literal($1);
+        return new NumberLiteral($1);
       }), o('String')
     ],
     String: [
       o('STRING', function() {
-        return new Literal($1);
+        return new StringLiteral($1);
       }), o('STRING_START Body STRING_END', function() {
-        return new Parens($2);
+        return new StringWithInterpolations($2);
       })
     ],
     Regex: [
       o('REGEX', function() {
-        return new Literal($1);
+        return new RegexLiteral($1);
       }), o('REGEX_START Invocation REGEX_END', function() {
-        return $2;
+        return new RegexWithInterpolations($2.args);
       })
     ],
     Literal: [
       o('AlphaNumeric'), o('JS', function() {
-        return new Literal($1);
-      }), o('Regex'), o('DEBUGGER', function() {
-        return new Literal($1);
-      }), o('UNDEFINED', function() {
-        return new Undefined;
+        return new PassthroughLiteral($1);
+      }), o('Regex'), o('UNDEFINED', function() {
+        return new UndefinedLiteral;
       }), o('NULL', function() {
-        return new Null;
+        return new NullLiteral;
       }), o('BOOL', function() {
-        return new Bool($1);
+        return new BooleanLiteral($1);
+      }), o('INFINITY', function() {
+        return new InfinityLiteral($1);
+      }), o('NAN', function() {
+        return new NaNLiteral;
       })
     ],
     Assign: [
@@ -138,7 +145,7 @@
         });
       }), o('Comment')
     ],
-    SimpleObjAssignable: [o('Identifier'), o('ThisProperty')],
+    SimpleObjAssignable: [o('Identifier'), o('Property'), o('ThisProperty')],
     ObjAssignable: [o('SimpleObjAssignable'), o('AlphaNumeric')],
     Return: [
       o('RETURN Expression', function() {
@@ -230,18 +237,18 @@
       }), o('This')
     ],
     Accessor: [
-      o('.  Identifier', function() {
-        return new Access($2);
-      }), o('.  Defer', function() {
+      o('.  Defer', function() {
         return new Access($2.setCustom());
-      }), o('?. Identifier', function() {
+      }), o('.  Property', function() {
+        return new Access($2);
+      }), o('?. Property', function() {
         return new Access($2, 'soak');
-      }), o(':: Identifier', function() {
-        return [LOC(1)(new Access(new Literal('prototype'))), LOC(2)(new Access($2))];
-      }), o('?:: Identifier', function() {
-        return [LOC(1)(new Access(new Literal('prototype'), 'soak')), LOC(2)(new Access($2))];
+      }), o(':: Property', function() {
+        return [LOC(1)(new Access(new PropertyName('prototype'))), LOC(2)(new Access($2))];
+      }), o('?:: Property', function() {
+        return [LOC(1)(new Access(new PropertyName('prototype'), 'soak')), LOC(2)(new Access($2))];
       }), o('::', function() {
-        return new Access(new Literal('prototype'));
+        return new Access(new PropertyName('prototype'));
       }), o('Index')
     ],
     Index: [
@@ -302,10 +309,13 @@
         return new Call($1, $3, $2);
       }), o('Invocation OptFuncExist Arguments', function() {
         return new Call($1, $3, $2);
-      }), o('SUPER', function() {
-        return new Call('super', [new Splat(new Literal('arguments'))]);
+      }), o('Super')
+    ],
+    Super: [
+      o('SUPER', function() {
+        return new SuperCall;
       }), o('SUPER Arguments', function() {
-        return new Call('super', $2);
+        return new SuperCall($2);
       })
     ],
     Defer: [
@@ -329,14 +339,14 @@
     ],
     This: [
       o('THIS', function() {
-        return new Value(new Literal('this'));
+        return new Value(new ThisLiteral);
       }), o('@', function() {
-        return new Value(new Literal('this'));
+        return new Value(new ThisLiteral);
       })
     ],
     ThisProperty: [
-      o('@ Identifier', function() {
-        return new Value(LOC(1)(new Literal('this')), [LOC(2)(new Access($2))], 'this');
+      o('@ Property', function() {
+        return new Value(LOC(1)(new ThisLiteral), [LOC(2)(new Access($2))], 'this');
       })
     ],
     Array: [
@@ -455,9 +465,9 @@
     ],
     Loop: [
       o('LOOP Block', function() {
-        return new While(LOC(1)(new Literal('true'))).addBody($2);
+        return new While(LOC(1)(new BooleanLiteral('true'))).addBody($2);
       }), o('LOOP Expression', function() {
-        return new While(LOC(1)(new Literal('true'))).addBody(LOC(2)(Block.wrap([$2])));
+        return new While(LOC(1)(new BooleanLiteral('true'))).addBody(LOC(2)(Block.wrap([$2])));
       })
     ],
     For: [
