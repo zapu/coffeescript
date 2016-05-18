@@ -38,7 +38,7 @@ replDefaults =
       tokens = CoffeeScript.tokens input
       # Collect referenced variable names just like in `CoffeeScript.compile`.
       referencedVars = (
-        token[1] for token in tokens when token.variable
+        token[1] for token in tokens when token[0] is 'IDENTIFIER'
       )
       # Generate the AST of the tokens.
       ast = CoffeeScript.nodes tokens
@@ -137,7 +137,7 @@ addHistory = (repl, filename, maxSize) ->
   fd = fs.openSync filename, 'a'
 
   repl.rli.addListener 'line', (code) ->
-    if code and code.length and code isnt '.history' and lastLine isnt code
+    if code and code.length and code isnt '.history' and code isnt '.exit' and lastLine isnt code
       # Save the latest command in the file
       fs.write fd, "#{code}\n"
       lastLine = code

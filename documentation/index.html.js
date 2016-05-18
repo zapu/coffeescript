@@ -554,7 +554,7 @@ Expressions
       as an expression, returning an array containing the result of each iteration
       through the loop.
     </p>
-    <%= codeFor('while', 'lyrics.join("\n")') %>
+    <%= codeFor('while', 'lyrics.join("\\n")') %>
     <p>
       For readability, the <b>until</b> keyword is equivalent to <code>while not</code>,
       and the <b>loop</b> keyword is equivalent to <code>while true</code>.
@@ -811,7 +811,7 @@ Expressions
       object that the current function is attached to. If you pass a function as
       a callback or attach it to a different object, the original value of <code>this</code>
       will be lost. If you're not familiar with this behavior,
-      <a href="http://www.digital-web.com/articles/scope_in_javascript/">this Digital Web article</a>
+      <a href="http://64.13.255.16/articles/scope_in_javascript/">this Digital Web article</a>
       gives a good overview of the quirks.
     </p>
     <p>

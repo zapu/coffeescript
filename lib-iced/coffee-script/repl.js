@@ -47,7 +47,7 @@
           results = [];
           for (i = 0, len = tokens.length; i < len; i++) {
             token = tokens[i];
-            if (token.variable) {
+            if (token[0] === 'IDENTIFIER') {
               results.push(token[1]);
             }
           }
@@ -154,10 +154,10 @@
       }
       repl.rli.historyIndex = -1;
       lastLine = repl.rli.history[0];
-    } catch (undefined) {}
+    } catch (error) {}
     fd = fs.openSync(filename, 'a');
     repl.rli.addListener('line', function(code) {
-      if (code && code.length && code !== '.history' && lastLine !== code) {
+      if (code && code.length && code !== '.history' && code !== '.exit' && lastLine !== code) {
         fs.write(fd, code + "\n");
         return lastLine = code;
       }
