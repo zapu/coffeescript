@@ -123,8 +123,8 @@ What will happen next:
 await ask "Do you want to continue?", defer()
 
 await iced_spawn 'git', ['add', 'package.json'], defer()
-await iced_spawn 'git', ['add', 'lib/coffee-script/*.js'], defer()
-await iced_spawn 'git', ['add', 'extras/coffee-script.js'], defer()
+await iced_spawn 'git', ['add', 'lib-iced/coffee-script/*.js'], defer()
+await iced_spawn 'git', ['add', 'extras/iced-coffee-script.js'], defer()
 
 await iced_spawn 'git', ['commit', '-m', "IcedCoffeeScript release #{final_version}"], defer()
 await iced_spawn 'git', ['tag', '-s', "v#{final_version}", '-m', "v#{final_version}"], defer()
