@@ -36,8 +36,6 @@ HEAD~` and `git tag -d tag_name` should be enough to undo repository
 changes.
 ###
 
-CoffeeScript = require '../lib/coffee-script'
-package_json = require '../package.json'
 {spawn, exec} = require 'child_process'
 fs = require 'fs'
 
@@ -73,25 +71,30 @@ write_package_version = (ver) ->
     json.version = ver
     fs.writeFileSync '../package.json', JSON.stringify json, null, 2
 
-patch_version = parseInt package_json.version.split('.')[2]
-coffee_version = CoffeeScript.VERSION.split('.').map (x)-> parseInt x
-
-final_version = [
-    coffee_version[0] * 100 + coffee_version[1]
-    coffee_version[2]
-    patch_version
-].join('.')
-
-console.log "Current Coffee-Script version (from coffee-script.coffee): #{CoffeeScript.VERSION}"
-console.log "Current IcedCoffeeScript patch version: #{patch_version}"
-console.log "Releasing iced under version: #{final_version}"
-console.log()
-
 console.log '* Proceeding with build'
 
 await cake ['build'], defer()
 await cake ['build:parser'], defer()
 await cake ['build'], defer()
+
+# Nuclear approach to ensure we get the fresh build. We should
+# probably be fine by clearing just index.js and coffee-script.js,
+# though.
+for i in Object.keys require.cache
+    delete require.cache[i]
+CoffeeScript = require '../lib-iced/coffee-script'
+
+coffee_version = CoffeeScript.VERSION
+patch_version = CoffeeScript.ICED_PATCH_VERSION
+final_version = CoffeeScript.ICED_VERSION
+
+console.log """
+
+Current Coffee-Script version (from coffee-script.coffee): #{coffee_version}
+Current IcedCoffeeScript patch version: #{patch_version}
+Releasing iced under version: #{final_version}
+
+"""
 
 console.log '* Running tests'
 
@@ -102,19 +105,18 @@ console.log '* Building browser support'
 await cake ['build:inline-runtime'], defer()
 await cake ['build:browser'], defer()
 
-console.log '* Writing version to package.json'
+console.log "* Writing version #{final_version} to package.json"
 
 write_package_version final_version
 
 console.log """
-
 Iced has been built and unit-tested.
 Please examine test output and see if there are no unexpected failures.
 
 You should also examine repository changes.
 
 What will happen next:
-- lib/coffee-script/*.js, extras/coffee-script.js, package.json will be staged
+- lib-iced/coffee-script/*.js, extras/coffee-script.js, package.json will be staged
 - git commit will be made with #{final_version} release message.
 - signed git tag will be made, of name \"v#{final_version}\", and the same tag message.
 
