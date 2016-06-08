@@ -18,7 +18,7 @@
   },
   "main": "./lib-iced/coffee-script/coffee-script",
   "bin": {
-    "iced": "./bin/coffee",
+    "iced3": "./bin/coffee",
     "icake": "./bin/cake"
   },
   "preferGlobal": true,
