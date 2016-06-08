@@ -45,7 +45,7 @@ npm install -g iced-coffee-script-3
 Leave off the `-g` if you don't wish to install globally. If you don't wish to use npm:
 
 ```shell
-git clone https://github.com/maxtaco/coffeescript.git
+git clone -b iced3 https://github.com/maxtaco/coffeescript.git
 sudo coffeescript/bin/cake install
 ```
 
