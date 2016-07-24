@@ -922,7 +922,7 @@ exports.Value = class Value extends Base
   # then export it here
   icedToSlot : (i) ->
     return @base.icedToSlot i if @base instanceof Obj
-    sufffix = null
+    suffix = null
     if @properties and @properties.length
       suffix = @properties.pop()
     return new Slot i, this, suffix
