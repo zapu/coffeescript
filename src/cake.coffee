@@ -74,7 +74,7 @@ printTasks = ->
 # Print an error and exit when attempting to use an invalid task/option.
 fatalError = (message) ->
   console.error message + '\n'
-  console.log 'To see a list of all tasks/options, run "cake"'
+  console.log 'To see a list of all tasks/options, run "icake"'
   process.exit 1
 
 missingTask = (task) -> fatalError "No such task: #{task}"

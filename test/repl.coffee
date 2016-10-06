@@ -25,7 +25,7 @@ class MockOutputStream extends Stream
     @written.push data
 
   lastWrite: (fromEnd = -1) ->
-    @written[@written.length - 1 + fromEnd].replace /\n$/, ''
+    @written[@written.length - 1 + fromEnd].replace /\r?\n$/, ''
 
 # Create a dummy history file
 historyFile = '.coffee_history_test'
@@ -108,7 +108,9 @@ testRepl "keeps running after runtime error", (input, output) ->
 
 testRepl "iced: handle awaits", (input, output) ->
   input.emitLine 'a = -> await b defer()'
-  eq '[Function]', output.lastWrite()
+  # The behavior changed somewhere in between Node 6.20 and Node 6.70,
+  # it used to be [Function] but is [Function: a] in 6.70.
+  ok ['[Function]', '[Function: a]'].indexOf(output.lastWrite()) != -1, "#{output.lastWrite()} is [Function] or [Function: a]"
 
 process.on 'exit', ->
   fs.unlinkSync historyFile

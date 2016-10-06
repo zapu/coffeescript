@@ -8,7 +8,7 @@
     "compiler"
   ],
   "author": "Jeremy Ashkenas + Maxwell Krohn + Michał Zochniak",
-  "version": "110.0.0",
+  "version": "111.1.0",
   "license": "MIT",
   "engines": {
     "node": ">=0.8.0"
@@ -21,6 +21,12 @@
     "iced3": "./bin/coffee",
     "icake3": "./bin/cake"
   },
+  "files": [
+    "bin",
+    "lib",
+    "register.js",
+    "repl.js"
+  ],
   "preferGlobal": true,
   "scripts": {
     "test": "node ./bin/cake test",
@@ -35,7 +41,7 @@
   "devDependencies": {
     "uglify-js": "~2.2",
     "jison": ">=0.2.0",
-    "highlight.js": "~8.0.0",
+    "highlight.js": "~9.6.0",
     "underscore": "~1.5.2",
     "docco": "~0.7.0"
   },

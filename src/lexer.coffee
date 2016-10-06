@@ -43,6 +43,8 @@ exports.Lexer = class Lexer
     @ends       = []             # The stack for pairing up tokens.
     @tokens     = []             # Stream of parsed tokens in the form `['TYPE', value, location data]`.
     @seenFor    = no             # Used to recognize FORIN and FOROF tokens.
+    @seenImport = no             # Used to recognize IMPORT FROM? AS? tokens.
+    @seenExport = no             # Used to recognize EXPORT FROM? AS? tokens.
 
     @chunkLine =
       opts.line or 0         # The start line for the current @chunk.
@@ -113,6 +115,17 @@ exports.Lexer = class Lexer
     if id is 'from' and @tag() is 'YIELD'
       @token 'FROM', id
       return id.length
+    if id is 'as' and @seenImport and (@tag() is 'IDENTIFIER' or @value() is '*')
+      @tokens[@tokens.length - 1][0] = 'IMPORT_ALL' if @value() is '*'
+      @token 'AS', id
+      return id.length
+    if id is 'as' and @seenExport and @tag() is 'IDENTIFIER'
+      @token 'AS', id
+      return id.length
+    if id is 'default' and @seenExport
+      @token 'DEFAULT', id
+      return id.length
+
     [..., prev] = @tokens
 
     tag =
@@ -135,6 +148,10 @@ exports.Lexer = class Lexer
         @seenFor = yes
       else if tag is 'UNLESS'
         tag = 'IF'
+      else if tag is 'IMPORT'
+        @seenImport = yes
+      else if tag is 'EXPORT'
+        @seenExport = yes
       else if tag in UNARY
         tag = 'UNARY'
       else if tag in RELATION
@@ -178,25 +195,30 @@ exports.Lexer = class Lexer
   # Be careful not to interfere with ranges-in-progress.
   numberToken: ->
     return 0 unless match = NUMBER.exec @chunk
+
     number = match[0]
     lexedLength = number.length
-    if /^0[BOX]/.test number
-      @error "radix prefix in '#{number}' must be lowercase", offset: 1
-    else if /E/.test(number) and not /^0x/.test number
-      @error "exponential notation in '#{number}' must be indicated with a lowercase 'e'",
-        offset: number.indexOf('E')
-    else if /^0\d*[89]/.test number
-      @error "decimal literal '#{number}' must not be prefixed with '0'", length: lexedLength
-    else if /^0\d+/.test number
-      @error "octal literal '#{number}' must be prefixed with '0o'", length: lexedLength
-    if octalLiteral = /^0o([0-7]+)/.exec number
-      numberValue = parseInt(octalLiteral[1], 8)
+
+    switch
+      when /^0[BOX]/.test number
+        @error "radix prefix in '#{number}' must be lowercase", offset: 1
+      when /^(?!0x).*E/.test number
+        @error "exponential notation in '#{number}' must be indicated with a lowercase 'e'",
+          offset: number.indexOf('E')
+      when /^0\d*[89]/.test number
+        @error "decimal literal '#{number}' must not be prefixed with '0'", length: lexedLength
+      when /^0\d+/.test number
+        @error "octal literal '#{number}' must be prefixed with '0o'", length: lexedLength
+
+    base = switch number.charAt 1
+      when 'b' then 2
+      when 'o' then 8
+      when 'x' then 16
+      else null
+    numberValue = if base? then parseInt(number[2..], base) else parseFloat(number)
+    if number.charAt(1) in ['b', 'o']
       number = "0x#{numberValue.toString 16}"
-    else if binaryLiteral = /^0b([01]+)/.exec number
-      numberValue = parseInt(binaryLiteral[1], 2)
-      number = "0x#{numberValue.toString 16}"
-    else
-      numberValue = parseFloat(number)
+
     tag = if numberValue is Infinity then 'INFINITY' else 'NUMBER'
     @token tag, number, 0, lexedLength
     lexedLength
@@ -206,6 +228,12 @@ exports.Lexer = class Lexer
   stringToken: ->
     [quote] = STRING_START.exec(@chunk) || []
     return 0 unless quote
+
+    # If the preceding token is `from` and this is an import or export statement,
+    # properly tag the `from`.
+    if @tokens.length and @value() is 'from' and (@seenImport or @seenExport)
+      @tokens[@tokens.length - 1][0] = 'FROM'
+
     regex = switch quote
       when "'"   then STRING_SINGLE
       when '"'   then STRING_DOUBLE
@@ -224,12 +252,12 @@ exports.Lexer = class Lexer
       while match = HEREDOC_INDENT.exec doc
         attempt = match[1]
         indent = attempt if indent is null or 0 < attempt.length < indent.length
-      indentRegex = /// ^#{indent} ///gm if indent
+      indentRegex = /// \n#{indent} ///g if indent
       @mergeInterpolationTokens tokens, {delimiter}, (value, i) =>
         value = @formatString value
+        value = value.replace indentRegex, '\n' if indentRegex
         value = value.replace LEADING_BLANK_LINE,  '' if i is 0
         value = value.replace TRAILING_BLANK_LINE, '' if i is $
-        value = value.replace indentRegex, '' if indentRegex
         value
     else
       @mergeInterpolationTokens tokens, {delimiter}, (value, i) =>
@@ -322,9 +350,12 @@ exports.Lexer = class Lexer
   lineToken: ->
     return 0 unless match = MULTI_DENT.exec @chunk
     indent = match[0]
+
     @seenFor = no
+
     size = indent.length - 1 - indent.lastIndexOf '\n'
     noNewlines = @unfinished()
+
     if size - @indebt is @indent
       if noNewlines then @suppressNewlines() else @newlineToken 0
       return indent.length
@@ -430,8 +461,10 @@ exports.Lexer = class Lexer
       return value.length if skipToken
 
     if value is ';'
-      @seenFor = no
+      @seenFor = @seenImport = @seenExport = no
       tag = 'TERMINATOR'
+    else if value is '*' and prev[0] is 'EXPORT'
+      tag = 'EXPORT_ALL'
     else if value in MATH            then tag = 'MATH'
     else if value in COMPARE         then tag = 'COMPARE'
     else if value in COMPOUND_ASSIGN then tag = 'COMPOUND_ASSIGN'
@@ -663,7 +696,7 @@ exports.Lexer = class Lexer
 
     # Use length - 1 for the final offset - we're supplying the last_line and the last_column,
     # so if last_column == first_column, then we're looking at a character of length 1.
-    lastCharacter = Math.max 0, length - 1
+    lastCharacter = if length > 0 then (length - 1) else 0
     [locationData.last_line, locationData.last_column] =
       @getLineAndColumnFromChunk offsetInChunk + lastCharacter
 
@@ -779,6 +812,7 @@ JS_KEYWORDS = [
   'return', 'throw', 'break', 'continue', 'debugger', 'yield'
   'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally'
   'class', 'extends', 'super'
+  'import', 'export', 'default'
 ]
 
 # CoffeeScript-only keywords.
@@ -808,8 +842,8 @@ COFFEE_KEYWORDS = COFFEE_KEYWORDS.concat COFFEE_ALIASES
 # used by CoffeeScript internally. We throw an error when these are encountered,
 # to avoid having a JavaScript error at runtime.
 RESERVED = [
-  'case', 'default', 'function', 'var', 'void', 'with', 'const', 'let', 'enum'
-  'export', 'import', 'native', 'implements', 'interface', 'package', 'private'
+  'case', 'function', 'var', 'void', 'with', 'const', 'let', 'enum'
+  'native', 'implements', 'interface', 'package', 'private'
   'protected', 'public', 'static'
 ]
 

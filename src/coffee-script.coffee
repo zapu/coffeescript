@@ -12,7 +12,7 @@ helpers       = require './helpers'
 SourceMap     = require './sourcemap'
 
 # The current CoffeeScript version number.
-exports.VERSION = '1.10.0'
+exports.VERSION = '1.11.1'
 
 exports.FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md', '.iced', '.liticed', '.iced.md']
 
@@ -71,6 +71,13 @@ exports.compile = compile = withPrettyErrors (code, options) ->
   options.referencedVars = (
     token[1] for token in tokens when token[0] is 'IDENTIFIER'
   )
+
+  # Check for import or export; if found, force bare mode
+  unless options.bare? and options.bare is yes
+    for token in tokens
+      if token[0] in ['IMPORT', 'EXPORT']
+        options.bare = yes
+        break
 
   fragments = icedTransform(parser.parse(tokens), options).compileToFragments options
 
@@ -337,9 +344,11 @@ sourceMaps = {}
 # Generates the source map for a coffee file and stores it in the local cache variable.
 getSourceMap = (filename) ->
   return sourceMaps[filename] if sourceMaps[filename]
-  return unless path?.extname(filename) in exports.FILE_EXTENSIONS
-  answer = exports._compileFile filename, true
-  sourceMaps[filename] = answer.sourceMap
+  for ext in exports.FILE_EXTENSIONS
+    if helpers.ends filename, ext
+      answer = exports._compileFile filename, true
+      return sourceMaps[filename] = answer.sourceMap
+  return null
 
 # Based on [michaelficarra/CoffeeScriptRedux](http://goo.gl/ZTx1p)
 # NodeJS / V8 have no support for transforming positions in stack traces using
