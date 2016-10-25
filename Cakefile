@@ -308,6 +308,8 @@ runTests = (CoffeeScript) ->
         description: description if description?
         #source: fn.toString() if fn.toString?
 
+  process.version_num = process.version.match('v([0-9.]+)')[1].split('.').map (x)-> parseInt x
+
   # End Iced additions
   # ----
 
@@ -345,7 +347,7 @@ runTests = (CoffeeScript) ->
       console.log "  #{source}" if source
     for lost in asyncTests
       log "  \"#{lost}\" did not come back", red
-    return
+    process.exit(if failures.length == 0 and asyncTest.length == 0 then 0 else 1)
 
   # Run every test in the `test` folder, recording failures.
   files = fs.readdirSync 'test'
