@@ -110,8 +110,8 @@ grammar =
   # IcedCoffeeScript Addition
   # Awaits can either wrap blocks or expressions, but can't be nested
   IcedAwait: [
-    o 'AWAIT Block',                             -> new Await $2
-    o 'AWAIT Expression',                        -> new Await Block.wrap [$2 ]
+    o 'AWAIT Block',                             -> new IcedAwait $2
+    o 'AWAIT Expression',                        -> new IcedAwait Block.wrap [$2 ]
   ]
 
   # All the different types of expressions in our language. The basic unit of

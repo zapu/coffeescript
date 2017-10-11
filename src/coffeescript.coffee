@@ -19,6 +19,9 @@ exports.FILE_EXTENSIONS = FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.m
 # Expose helpers for testing.
 exports.helpers = helpers
 
+# Run through the "iced" transform process
+icedTransform = (x, options) -> x.icedTransform options
+
 # Function that allows for btoa in both nodejs and the browser.
 base64encode = (src) -> switch
   when typeof Buffer is 'function'
@@ -94,7 +97,7 @@ exports.compile = compile = withPrettyErrors (code, options = {}) ->
         options.bare = yes
         break
 
-  fragments = parser.parse(tokens).compileToFragments options
+  fragments = icedTransform(parser.parse(tokens), options).compileToFragments options
 
   currentLine = 0
   currentLine += 1 if options.header
