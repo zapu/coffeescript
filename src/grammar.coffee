@@ -95,7 +95,7 @@ grammar =
 
   FuncDirective: [
     o 'YieldReturn'
-    o 'AwaitReturn'
+    o 'CoffeeAwaitReturn'
   ]
 
   # Pure statements which cannot be expressions.
@@ -104,6 +104,14 @@ grammar =
     o 'STATEMENT',                              -> new StatementLiteral $1
     o 'Import'
     o 'Export'
+    o 'IcedAwait'
+  ]
+
+  # IcedCoffeeScript Addition
+  # Awaits can either wrap blocks or expressions, but can't be nested
+  IcedAwait: [
+    o 'AWAIT Block',                             -> new Await $2
+    o 'AWAIT Expression',                        -> new Await Block.wrap [$2 ]
   ]
 
   # All the different types of expressions in our language. The basic unit of
@@ -123,6 +131,7 @@ grammar =
     o 'Class'
     o 'Throw'
     o 'Yield'
+    o 'Defer'
   ]
 
   Yield: [
@@ -254,9 +263,9 @@ grammar =
     o 'YIELD RETURN',                           -> new YieldReturn
   ]
 
-  AwaitReturn: [
-    o 'AWAIT RETURN Expression',                -> new AwaitReturn $3
-    o 'AWAIT RETURN',                           -> new AwaitReturn
+  CoffeeAwaitReturn: [
+    o 'COFFEE_AWAIT RETURN Expression',                -> new CoffeeAwaitReturn $3
+    o 'COFFEE_AWAIT RETURN',                           -> new CoffeeAwaitReturn
   ]
 
   # The **Code** node is the function literal. It's defined by an indented block
@@ -345,9 +354,15 @@ grammar =
     o 'SUPER INDEX_START Expression INDEX_END', -> new Super LOC(3)(new Index $3),  [], no, $1
   ]
 
+  # IcedCoffeeScript additions
+  Defer : [
+    o 'DEFER Arguments',                        -> new Defer $2, yylineno
+  ]
+
   # The general group of accessors into an object, by property, by prototype
   # or by array index or slice.
   Accessor: [
+    o '.  Defer',                               -> new Access $2.setCustom()
     o '.  Property',                            -> new Access $2
     o '?. Property',                            -> new Access $2, 'soak'
     o ':: Property',                            -> [LOC(1)(new Access new PropertyName('prototype')), LOC(2)(new Access $2)]
@@ -691,7 +706,7 @@ grammar =
     o '-     Expression',                      (-> new Op '-', $2), prec: 'UNARY_MATH'
     o '+     Expression',                      (-> new Op '+', $2), prec: 'UNARY_MATH'
 
-    o 'AWAIT Expression',                       -> new Op $1 , $2
+    o 'COFFEE_AWAIT Expression',                -> new Op $1, $2
 
     o '-- SimpleAssignable',                    -> new Op '--', $2
     o '++ SimpleAssignable',                    -> new Op '++', $2
@@ -745,7 +760,7 @@ operators = [
   ['nonassoc',  '++', '--']
   ['left',      '?']
   ['right',     'UNARY']
-  ['right',     'AWAIT']
+  ['right',     'COFFEE_AWAIT']
   ['right',     '**']
   ['right',     'UNARY_MATH']
   ['left',      'MATH']
@@ -765,6 +780,7 @@ operators = [
   ['right',     'FORIN', 'FOROF', 'FORFROM', 'BY', 'WHEN']
   ['right',     'IF', 'ELSE', 'FOR', 'WHILE', 'UNTIL', 'LOOP', 'SUPER', 'CLASS', 'IMPORT', 'EXPORT']
   ['left',      'POST_IF']
+  ['right',     'AWAIT']
 ]
 
 # Wrapping Up

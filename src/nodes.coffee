@@ -837,10 +837,10 @@ exports.YieldReturn = class YieldReturn extends Return
       @error 'yield can only occur inside functions'
     super o
 
-exports.AwaitReturn = class AwaitReturn extends Return
+exports.CoffeeAwaitReturn = class CoffeeAwaitReturn extends Return
   compileNode: (o) ->
     unless o.scope.parent?
-      @error 'await can only occur inside functions'
+      @error 'es6await can only occur inside functions'
     super o
 
 
@@ -2497,7 +2497,7 @@ exports.Code = class Code extends Base
     @body.traverseChildren no, (node) =>
       if (node instanceof Op and node.isYield()) or node instanceof YieldReturn
         @isGenerator = yes
-      if (node instanceof Op and node.isAwait()) or node instanceof AwaitReturn
+      if (node instanceof Op and node.isCoffeeAwait()) or node instanceof CoffeeAwaitReturn
         @isAsync = yes
       if @isGenerator and @isAsync
         node.error "function can't contain both yield and await"
@@ -3003,8 +3003,8 @@ exports.Op = class Op extends Base
     @isUnary() and @operator in ['+', '-'] and
       @first instanceof Value and @first.isNumber()
 
-  isAwait: ->
-    @operator is 'await'
+  isCoffeeAwait: ->
+    @operator is 'waitfor'
 
   isYield: ->
     @operator in ['yield', 'yield*']
@@ -3076,7 +3076,7 @@ exports.Op = class Op extends Base
     if @operator in ['--', '++']
       message = isUnassignable @first.unwrapAll().value
       @first.error message if message
-    return @compileContinuation o if @isYield() or @isAwait()
+    return @compileContinuation o if @isYield() or @isCoffeeAwait()
     return @compileUnary        o if @isUnary()
     return @compileChain        o if isChain
     switch @operator
@@ -3134,6 +3134,8 @@ exports.Op = class Op extends Base
   compileContinuation: (o) ->
     parts = []
     op = @operator
+    if @isCoffeeAwait()
+      op = 'await'
     unless o.scope.parent?
       @error "#{@operator} can only occur inside functions"
     if o.scope.method?.bound and o.scope.method.isGenerator

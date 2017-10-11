@@ -154,6 +154,13 @@ exports.Lexer = class Lexer
       else
         'IDENTIFIER'
 
+    # IcedCoffeeScript Addition
+    if id is 'defer' and not colon
+      tag = 'IDENTIFIER'
+
+    if id is 'waitfor'
+      tag = 'COFFEE_AWAIT'
+
     if tag is 'IDENTIFIER' and (id in JS_KEYWORDS or id in COFFEE_KEYWORDS) and
        not (@exportSpecifierList and id in COFFEE_KEYWORDS)
       tag = id.toUpperCase()
@@ -1110,19 +1117,22 @@ isForFrom = (prev) ->
 # ---------
 
 # Keywords that CoffeeScript shares in common with JavaScript.
+# IcedCoffeeScript - Remove 'await'
 JS_KEYWORDS = [
   'true', 'false', 'null', 'this'
   'new', 'delete', 'typeof', 'in', 'instanceof'
-  'return', 'throw', 'break', 'continue', 'debugger', 'yield', 'await'
+  'return', 'throw', 'break', 'continue', 'debugger', 'yield'
   'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally'
   'class', 'extends', 'super'
   'import', 'export', 'default'
 ]
 
 # CoffeeScript-only keywords.
+# IcedCoffeeScript Addition - 'await', 'defer', 'waitfor' (ES6 await)
 COFFEE_KEYWORDS = [
   'undefined', 'Infinity', 'NaN'
   'then', 'unless', 'until', 'loop', 'of', 'by', 'when'
+  'await', 'defer', 'waitfor'
 ]
 
 COFFEE_ALIAS_MAP =
@@ -1346,3 +1356,6 @@ INDENTABLE_CLOSERS = [')', '}', ']']
 UNFINISHED = ['\\', '.', '?.', '?::', 'UNARY', 'MATH', 'UNARY_MATH', '+', '-',
            '**', 'SHIFT', 'RELATION', 'COMPARE', '&', '^', '|', '&&', '||',
            'BIN?', 'EXTENDS', 'DEFAULT']
+
+# IcedCoffeeScript Addition
+CALLABLE.push 'DEFER'
