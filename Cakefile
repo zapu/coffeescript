@@ -425,6 +425,18 @@ runTests = (CoffeeScript) ->
     catch err
       onFail description, fn, err
 
+  global.atest = (description, fn) ->
+    try
+      fn.test = {description, currentFile}
+      cb = (ret) ->
+        if ret
+          passedTests++
+        else
+          onFail description, fn, "called back with falsy value"
+      result = fn.call(fn, cb)
+    catch err
+      onFail description, fn, err
+
   global.supportsAsync = try
       new Function('async () => {}')()
       yes
@@ -452,6 +464,9 @@ runTests = (CoffeeScript) ->
   files = fs.readdirSync 'test'
   unless global.supportsAsync # Except for async tests, if async isn’t supported.
     files = files.filter (filename) -> filename isnt 'async.coffee'
+
+  files = ['iced.coffee']
+  #files = files.filter (filename) -> ['async.coffee', 'error_messages.coffee', 'iced.coffee', 'iced_advanced.coffee'].indexOf(filename) is -1
 
   startTime = Date.now()
   for file in files when helpers.isCoffee file

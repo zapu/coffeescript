@@ -871,6 +871,7 @@ exports.ThisLiteral = class ThisLiteral extends Literal
 
   compileNode: (o) ->
     code = if o.scope.method?.bound then o.scope.method.context else @value
+    code = o.scope.method.icedContext if o.scope.method?.icedContext?
     [@makeCode code]
 
 exports.UndefinedLiteral = class UndefinedLiteral extends Literal
@@ -1073,6 +1074,24 @@ exports.Value = class Value extends Base
 
   # Minor iced addition for convenience
   copy : -> new Value @base, @properties
+
+  # If this value is being used as a slot for the purposes of a defer
+  # then export it here
+  icedToSlot : (i) ->
+    return @base.icedToSlot i if @base instanceof Obj
+    sufffix = null
+    if @properties and @properties.length
+      suffix = @properties.pop()
+    return new Slot i, this, suffix
+
+  icedToSlotAccess : () ->
+    # See bug #78 in the ICS repository. We're concerned about this case:
+    #    await foo defer { @x }
+    # In this situation, `@x` will be represented as a value with the `this`
+    # property set to `true`, and properties[0] will have the name of the
+    # dictionary key that's needed (already as an `Access` instance)
+    if @this then @properties[0]
+    else new Access new PropertyName @base.value
 
 #### HereComment
 
@@ -1643,6 +1662,14 @@ exports.Obj = class Obj extends Base
       answer.push prop.compileToFragments(o, LEVEL_TOP)...
       answer.push @makeCode join
     if @front then @wrapInParentheses answer else answer
+
+  icedToSlot : (i) ->
+    for prop in @properties
+      if prop instanceof Assign
+        (prop.value.icedToSlot i).addAccess prop.variable.icedToSlotAccess()
+      else if prop instanceof Value
+        access = prop.icedToSlotAccess()
+        (prop.icedToSlot i).addAccess access
 
 #### Arr
 
@@ -2884,11 +2911,6 @@ exports.Code = class Code extends Base
     # Error condition of generators + await, which don't mix
     @error "Methods with `await` cannot be generators" if @isGenerator
 
-    # the outer function must be bound to properly capture this.
-    # TODO: Should it? `@bound = true` here breaks class methods
-    # with await.
-    #@bound = true
-
     # Don't do the same operation the next time through
     @icedFlag = false
 
@@ -2903,15 +2925,16 @@ exports.Code = class Code extends Base
     rhs = new Call f, [ new Value new IdentifierLiteral 'arguments' ]
     body.push(new Assign @icedPassedDeferral, rhs, null, { param: true })
 
-    # var __it = (function* (_this) {  [ @body ]} )(this);
-    code = new Code [], (new Block [ @body ]), 'icedgen'
+    # var __it = (function* (__this) {  [ @body ]} )(this);
+    code = new Code [ new Param(new IdentifierLiteral('__this')) ], (new Block [ @body ]), 'icedgen'
     code.isGenerator = true
+    code.icedContext = '__this'
 
     if @icedFoundArguments
       @icedSaveArguments = true
       code.icedUseArguments = true
 
-    rhs = new Call code, []
+    rhs = new Call code, [ new ThisLiteral ]
     body.push(new Assign @icedIterator, rhs, null, { param: true })
 
     # __it.next();
@@ -3062,6 +3085,9 @@ exports.Splat = class Splat extends Base
     [@makeCode('...'), @name.compileToFragments(o, LEVEL_OP)...]
 
   unwrap: -> @name
+
+  icedToSlot: (i) ->
+    new Slot(i, new Value(@name), null, true)
 
 #### Expansion
 
