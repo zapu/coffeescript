@@ -1276,6 +1276,13 @@ exports.SuperCall = class SuperCall extends Call
     @expressions?.length and o.level is LEVEL_TOP
 
   compileNode: (o) ->
+    icedIterator = o.scope?.parent?.method?.icedIterator
+    if icedIterator?
+      supval = new Value new IdentifierLiteral '__super'
+      supval.add new Access new PropertyName 'call'
+      rhs = new Call supval, [ new Value(new ThisLiteral) ].concat @args
+      return rhs.compileNode o
+
     return super o unless @expressions?.length
 
     superCall   = new Literal fragmentsToText super o
@@ -1298,6 +1305,9 @@ exports.Super = class Super extends Base
   compileNode: (o) ->
     method = o.scope.namedMethod()
     @error 'cannot use super outside of an instance method' unless method?.isMethod
+    icedIterator = o.scope?.parent?.method?.icedIterator
+    if icedIterator?
+      @error "cannot use super in iced method"
 
     unless method.ctor? or @accessor?
       {name, variable} = method
@@ -2923,12 +2933,21 @@ exports.Code = class Code extends Base
     f = new Value new IdentifierLiteral iced.const.ns
     f.add new Access new PropertyName iced.const.findDeferral
     rhs = new Call f, [ new Value new IdentifierLiteral 'arguments' ]
-    body.push(new Assign @icedPassedDeferral, rhs, null, { param: true })
+    body.push(new Assign @icedPassedDeferral, rhs, null, { param: 'alwaysDeclare' })
+
+    if @isMethod
+      f = new Value new IdentifierLiteral '__super'
+      sup = new Value new IdentifierLiteral 'super'
+      sup.add @name
+      body.push(new Assign f, sup, null, { param: 'alwaysDeclare' })
 
     # var __it = (function* () {  [ @body ]} ).apply(this, arguments);
     code = new Code [], (new Block [ @body ]), 'icedgen'
     code.isGenerator = true
 
+    # TODO: Not used anymore. See if new `.apply(this, arguments)`
+    # trick works and maybe arguments do not have to be perserved
+    # and contextified.
     if @icedFoundArguments
       @icedSaveArguments = true
       code.icedUseArguments = true
@@ -2936,7 +2955,7 @@ exports.Code = class Code extends Base
     codeval = new Value code
     codeval.add new Access new PropertyName 'apply'
     rhs = new Call codeval, [ new Value(new ThisLiteral), new Value( new IdentifierLiteral 'arguments')  ]
-    body.push(new Assign @icedIterator, rhs, null, { param: true })
+    body.push(new Assign @icedIterator, rhs, null, { param: 'alwaysDeclare' })
 
     # __it.next();
     nxt = @icedIterator.copy()
@@ -2955,10 +2974,6 @@ exports.Code = class Code extends Base
     @icedFlag = o_new.awaitInFunc
     @icedFoundArguments = o.foundArguments or o_new.foundArguments
 
-    for param in @params
-      if param.name instanceof Literal and param.name.value is iced.const.autocb
-        @foundAutocb = true
-        break
     @
 
   icedTraceName : ->
