@@ -2309,6 +2309,17 @@ exports.Assign = class Assign extends Base
       else if @variable.properties?.length >= 2
         [properties..., prototype, name] = @variable.properties
         @value.name = name if prototype.name?.value is 'prototype'
+      else if @variable.base instanceof Literal
+        # IcedCoffeeScript Addition
+        # Try to pass the variable to value if it's a simple function
+        # assignment, like:
+        #
+        # > foo = (param) -> function_body
+        #
+        # so iced can generate better debug traces, instead of saying
+        # that error was in "<anonymous>". Most functions in coffee
+        # anonymous.
+        @value.variable = @variable
 
     @value.base.csxAttribute = yes if @csx
     val = @value.compileToFragments o, LEVEL_LIST
@@ -3158,6 +3169,8 @@ exports.While = class While extends Base
   # *while* can be used as a part of a larger expression -- while loops may
   # return an array containing the computed result of each iteration.
   compileNode: (o) ->
+    @condition.icedStatementAssertion()
+
     o.indent += TAB
     set      = ''
     {body}   = this
