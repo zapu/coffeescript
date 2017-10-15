@@ -2925,16 +2925,17 @@ exports.Code = class Code extends Base
     rhs = new Call f, [ new Value new IdentifierLiteral 'arguments' ]
     body.push(new Assign @icedPassedDeferral, rhs, null, { param: true })
 
-    # var __it = (function* (__this) {  [ @body ]} )(this);
-    code = new Code [ new Param(new IdentifierLiteral('__this')) ], (new Block [ @body ]), 'icedgen'
+    # var __it = (function* () {  [ @body ]} ).apply(this, arguments);
+    code = new Code [], (new Block [ @body ]), 'icedgen'
     code.isGenerator = true
-    code.icedContext = '__this'
 
     if @icedFoundArguments
       @icedSaveArguments = true
       code.icedUseArguments = true
 
-    rhs = new Call code, [ new ThisLiteral ]
+    codeval = new Value code
+    codeval.add new Access new PropertyName 'apply'
+    rhs = new Call codeval, [ new Value(new ThisLiteral), new Value( new IdentifierLiteral 'arguments')  ]
     body.push(new Assign @icedIterator, rhs, null, { param: true })
 
     # __it.next();
