@@ -233,3 +233,14 @@ exports.nameWhitespaceCharacter = (string) ->
     when '\r' then 'carriage return'
     when '\t' then 'tab'
     else string
+
+# IcedCoffeeScript Addition
+# Transforms multiline string to JavaScript string literal, ready to
+# emit by the compiler.
+exports.strToJavascript = (source) ->
+  lines = source.split '\n'
+
+  lines = lines.map (line) ->
+    line.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+
+  "'#{lines.join('\\n')}'"

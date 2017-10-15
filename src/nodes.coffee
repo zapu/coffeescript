@@ -13,7 +13,7 @@ iced = require 'iced-runtime-3'
 # Import the helpers we plan to use.
 {compact, flatten, extend, merge, del, starts, ends, some,
 addDataToNode, attachCommentsToNode, locationDataToString,
-throwSyntaxError} = require './helpers'
+throwSyntaxError, strToJavascript} = require './helpers'
 
 # Functions required by parser.
 exports.extend = extend
