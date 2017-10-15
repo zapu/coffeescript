@@ -1132,7 +1132,7 @@ JS_KEYWORDS = [
 COFFEE_KEYWORDS = [
   'undefined', 'Infinity', 'NaN'
   'then', 'unless', 'until', 'loop', 'of', 'by', 'when'
-  'await', 'defer', 'waitfor'
+  'await', 'defer', 'waitfor', 'autocb'
 ]
 
 COFFEE_ALIAS_MAP =
