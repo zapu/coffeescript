@@ -3,8 +3,8 @@ os                        = require 'os'
 path                      = require 'path'
 _                         = require 'underscore'
 { spawn, exec, execSync } = require 'child_process'
-CoffeeScript              = require './lib/coffeescript'
-helpers                   = require './lib/coffeescript/helpers'
+CoffeeScript              = require './lib-iced/coffeescript'
+helpers                   = require './lib-iced/coffeescript/helpers'
 
 # ANSI Terminal Colors.
 bold = red = green = yellow = reset = ''
@@ -54,13 +54,13 @@ buildParser = ->
   helpers.extend global, require 'util'
   require 'jison'
   # We don't need `moduleMain`, since the parser is unlikely to be run standalone.
-  parser = require('./lib/coffeescript/grammar').parser.generate(moduleMain: ->)
-  fs.writeFileSync 'lib/coffeescript/parser.js', parser
+  parser = require('./lib-iced/coffeescript/grammar').parser.generate(moduleMain: ->)
+  fs.writeFileSync 'lib-iced/coffeescript/parser.js', parser
 
 buildExceptParser = (callback) ->
   files = fs.readdirSync 'src'
   files = ('src/' + file for file in files when file.match(/\.(lit)?coffee$/))
-  run ['-c', '-o', 'lib/coffeescript'].concat(files), callback
+  run ['-c', '-o', 'lib-iced/coffeescript'].concat(files), callback
 
 build = (callback) ->
   buildParser()
@@ -81,7 +81,7 @@ transpile = (code) ->
   code
 
 testBuiltCode = (watch = no) ->
-  csPath = './lib/coffeescript'
+  csPath = './lib-iced/coffeescript'
   csDir  = path.dirname require.resolve csPath
 
   for mod of require.cache when csDir is mod[0 ... csDir.length]
@@ -93,7 +93,7 @@ testBuiltCode = (watch = no) ->
 
 buildAndTest = (includingParser = yes, harmony = no) ->
   process.stdout.write '\x1Bc' # Clear terminal screen.
-  execSync 'git checkout lib/*', stdio: 'inherit' # Reset the generated compiler.
+  execSync 'git checkout lib-iced/*', stdio: 'inherit' # Reset the generated compiler.
 
   buildArgs = ['bin/cake']
   buildArgs.push if includingParser then 'build' else 'build:except-parser'
@@ -136,7 +136,7 @@ task 'build:browser', 'merge the built scripts into a single file for use in a b
     code += """
       require['./#{name}'] = (function() {
         var exports = {}, module = {exports: exports};
-        #{fs.readFileSync "lib/coffeescript/#{name}.js"}
+        #{fs.readFileSync "lib-iced/coffeescript/#{name}.js"}
         return module.exports;
       })();
     """
@@ -358,7 +358,7 @@ task 'release', 'build and test the CoffeeScript source, and build the documenta
 
 
 task 'bench', 'quick benchmark of compilation time', ->
-  {Rewriter} = require './lib/coffeescript/rewriter'
+  {Rewriter} = require './lib-iced/coffeescript/rewriter'
   sources = ['coffeescript', 'grammar', 'helpers', 'lexer', 'nodes', 'rewriter']
   coffee  = sources.map((name) -> fs.readFileSync "src/#{name}.coffee").join '\n'
   litcoffee = fs.readFileSync("src/scope.litcoffee").toString()
@@ -394,7 +394,7 @@ runTests = (CoffeeScript) ->
 
   # Convenience aliases.
   global.CoffeeScript = CoffeeScript
-  global.Repl   = require './lib/coffeescript/repl'
+  global.Repl   = require './lib-iced/coffeescript/repl'
   global.bold   = bold
   global.red    = red
   global.green  = green
@@ -527,3 +527,26 @@ task 'test:integrations', 'test the module integrated with other libraries and e
     testResults = runTests CoffeeScript
     fs.unlinkSync builtCompiler
     process.exit 1 unless testResults
+
+task 'build:inline-runtime', 'build the inline iced3 runtime', ->
+  runtime_dir = path.dirname require.resolve 'iced-runtime-3'
+  code = ''
+  for name in ['const', 'runtime', 'library', 'main']
+    code += """
+      require['./#{name}'] = (function() {
+        var exports = {}, module = {exports: exports};
+        #{fs.readFileSync "#{runtime_dir}/#{name}.js"}
+        return module.exports;
+      })();
+    """
+  code = """
+    (function() {
+      function require(path){ return require[path]; }
+      #{code}
+      return require['./main'];
+    }());
+  """
+
+  fs.writeFileSync 'lib-iced/coffee-script/inline-runtime.js', header + '\n' + code
+  fs.writeFileSync 'lib-iced/coffee-script/inline-runtime-str.js', "module.exports = #{helpers.strToJavascript(code)}"
+  console.log 'built inline iced3 runtime'
