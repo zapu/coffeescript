@@ -547,6 +547,6 @@ task 'build:inline-runtime', 'build the inline iced3 runtime', ->
     }());
   """
 
-  fs.writeFileSync 'lib-iced/coffee-script/inline-runtime.js', header + '\n' + code
-  fs.writeFileSync 'lib-iced/coffee-script/inline-runtime-str.js', "module.exports = #{helpers.strToJavascript(code)}"
+  fs.writeFileSync 'lib-iced/coffeescript/inline-runtime.js', header + '\n' + code
+  fs.writeFileSync 'lib-iced/coffeescript/inline-runtime-str.js', "module.exports = #{helpers.strToJavascript(code)}"
   console.log 'built inline iced3 runtime'

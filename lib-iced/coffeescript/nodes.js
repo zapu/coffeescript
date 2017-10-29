@@ -2040,7 +2040,9 @@
         var name, node;
         name = this.name.compileToFragments(o);
         node = this.name.unwrap();
-        if (node instanceof PropertyName) {
+        // IcedCoffeeScript change - custom defers have to be accessed
+        // through `.` due to how Defer compiles itself to function call.
+        if (node instanceof PropertyName || node instanceof Defer) {
           return [this.makeCode('.'), ...name];
         } else {
           return [this.makeCode('['), ...name, this.makeCode(']')];
@@ -2786,18 +2788,22 @@
         }
         for (k = 0, len2 = initializer.length; k < len2; k++) {
           method = initializer[k];
-          if (method instanceof Code) {
-            if (method.ctor) {
-              if (this.ctor) {
-                method.error('Cannot define more than one constructor in a class');
-              }
-              this.ctor = method;
-            } else if (method.isStatic && method.bound) {
-              method.context = this.name;
-            } else if (method.bound) {
-              this.boundMethods.push(method);
-            }
+          if (!(method instanceof Code)) {
+            continue;
           }
+          if (method.ctor) {
+            if (this.ctor) {
+              method.error('Cannot define more than one constructor in a class');
+            }
+            this.ctor = method;
+          } else if (method.isStatic && method.bound) {
+            method.context = this.name;
+          } else if (method.bound) {
+            this.boundMethods.push(method);
+          }
+          // IcedCoffeeScript addition - set class name in methods so more
+          // descriptive funcname can be passed to __iced_deferrals.
+          method.className = this.name;
         }
         if (initializer.length !== expressions.length) {
           this.body.expressions = (function() {
@@ -4320,15 +4326,15 @@
       }
 
       icedTraceName() {
-        var n, parts, ref1, ref2, ref3, ref4, ref5, ref6;
+        var n, parts, ref1, ref2, ref3, ref4;
         parts = [];
-        if ((n = (ref1 = this.klass) != null ? (ref2 = ref1.base) != null ? ref2.value : void 0 : void 0) != null) {
+        if ((n = this.className) != null) {
           parts.push(n);
         }
-        if ((n = (ref3 = this.name) != null ? (ref4 = ref3.name) != null ? ref4.value : void 0 : void 0) != null) {
+        if ((n = (ref1 = this.name) != null ? (ref2 = ref1.name) != null ? ref2.value : void 0 : void 0) != null) {
           parts.push(n);
         }
-        if ((n = (ref5 = this.variable) != null ? (ref6 = ref5.base) != null ? ref6.value : void 0 : void 0) != null) {
+        if ((n = (ref3 = this.variable) != null ? (ref4 = ref3.base) != null ? ref4.value : void 0 : void 0) != null) {
           parts.push(`<anonymous: ${n}>`);
         }
         return parts.join('.');

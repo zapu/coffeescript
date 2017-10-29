@@ -1379,7 +1379,9 @@ exports.Access = class Access extends Base
   compileToFragments: (o) ->
     name = @name.compileToFragments o
     node = @name.unwrap()
-    if node instanceof PropertyName
+    # IcedCoffeeScript change - custom defers have to be accessed
+    # through `.` due to how Defer compiles itself to function call.
+    if node instanceof PropertyName or node instanceof Defer
       [@makeCode('.'), name...]
     else
       [@makeCode('['), name..., @makeCode(']')]
@@ -1882,6 +1884,10 @@ exports.Class = class Class extends Base
         method.context = @name
       else if method.bound
         @boundMethods.push method
+
+      # IcedCoffeeScript addition - set class name in methods so more
+      # descriptive funcname can be passed to __iced_deferrals.
+      method.className = @name
 
     if initializer.length isnt expressions.length
       @body.expressions = (expression.hoist() for expression in initializer)
@@ -2989,7 +2995,7 @@ exports.Code = class Code extends Base
 
   icedTraceName : ->
     parts = []
-    parts.push n if (n = @klass?.base?.value)?
+    parts.push n if (n = @className)?
     parts.push n if (n = @name?.name?.value)?
     parts.push "<anonymous: #{n}>" if (n = @variable?.base?.value)?
     parts.join '.'
@@ -4200,7 +4206,6 @@ exports.Defer = class Defer extends Base
       fn.add new Access new PropertyName iced.const.defer_method
     else
       @error "defer() without parent await or Rendezvous"
-
 
     # There is one argument to Deferrals.defer(), which is a dictionary.
     # The dictionary currently only has one slot: assign_fn, which
