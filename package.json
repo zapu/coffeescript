@@ -1,26 +1,26 @@
 {
-  "name": "coffeescript",
-  "description": "Unfancy JavaScript",
+  "name": "iced-coffee-script-4",
+  "description": "IcedCoffeeScript",
   "keywords": [
     "javascript",
     "language",
     "coffeescript",
     "compiler"
   ],
-  "author": "Jeremy Ashkenas",
+  "author": "Jeremy Ashkenas + Maxwell Krohn + Michał Zochniak",
   "version": "2.0.1",
   "license": "MIT",
   "engines": {
     "node": ">=6"
   },
   "directories": {
-    "lib": "./lib/coffeescript"
+    "lib": "./lib-iced/coffeescript"
   },
-  "main": "./lib/coffeescript/index",
-  "browser": "./lib/coffeescript/browser",
+  "main": "./lib-iced/coffeescript/index",
+  "browser": "./lib-iced/coffeescript/browser",
   "bin": {
-    "coffee": "./bin/coffee",
-    "cake": "./bin/cake"
+    "iced": "./bin/iced",
+    "icake": "./bin/icake"
   },
   "files": [
     "bin",
@@ -29,14 +29,14 @@
     "repl.js"
   ],
   "scripts": {
-    "test": "node ./bin/cake test",
-    "test-harmony": "node --harmony ./bin/cake test"
+    "test": "node ./bin/icake test",
+    "test-harmony": "node --harmony ./bin/icake test"
   },
-  "homepage": "http://coffeescript.org",
-  "bugs": "https://github.com/jashkenas/coffeescript/issues",
+  "homepage": "http://maxtaco.github.io/coffee-script",
+  "bugs": "https://github.com/maxtaco/coffee-script/issues",
   "repository": {
     "type": "git",
-    "url": "git://github.com/jashkenas/coffeescript.git"
+    "url": "git://github.com/maxtaco/coffee-script.git"
   },
   "devDependencies": {
     "babel-core": "~6.26.0",
@@ -51,5 +51,7 @@
     "underscore": "~1.8.3",
     "webpack": "~3.6.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "iced-runtime-3": ">=3.0.4"
+  }
 }
