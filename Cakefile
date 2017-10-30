@@ -465,8 +465,7 @@ runTests = (CoffeeScript) ->
   unless global.supportsAsync # Except for async tests, if async isn’t supported.
     files = files.filter (filename) -> filename isnt 'async.coffee'
 
-  files = ['iced.coffee']
-  #files = files.filter (filename) -> ['async.coffee', 'error_messages.coffee', 'iced.coffee', 'iced_advanced.coffee'].indexOf(filename) is -1
+  files = files.filter (filename) -> filename not in ['error_messages.coffee', 'async.coffee']
 
   startTime = Date.now()
   for file in files when helpers.isCoffee file
