@@ -117,7 +117,7 @@ testRepl "keeps running after runtime error", (input, output) ->
 
 testRepl "#4604: wraps an async function", (input, output) ->
   return unless global.supportsAsync
-  input.emitLine 'await new Promise (resolve) -> setTimeout (-> resolve 33), 10'
+  input.emitLine 'waitfor new Promise (resolve) -> setTimeout (-> resolve 33), 10'
   setTimeout ->
     eq '33', output.lastWrite()
   , 20

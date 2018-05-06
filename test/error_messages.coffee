@@ -4,11 +4,17 @@
 # Ensure that errors of different kinds (lexer, parser and compiler) are shown
 # in a consistent way.
 
-assertErrorFormat = (code, expectedErrorFormat) ->
-  throws (-> CoffeeScript.run code), (err) ->
+assertErrorFormatInternal = (code, coffee_mode, expectedErrorFormat) ->
+  throws (-> CoffeeScript.run code, { coffee_mode }), (err) ->
     err.colorful = no
     eq expectedErrorFormat, "#{err}"
     yes
+
+assertErrorFormat = (code, expectedErrorFormat) ->
+  assertErrorFormatInternal code, true, expectedErrorFormat
+
+assertErrorFormatIced = (code, expectedErrorFormat) ->
+  assertErrorFormatInternal code, false, expectedErrorFormat
 
 test "lexer errors formatting", ->
   assertErrorFormat '''

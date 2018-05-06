@@ -706,7 +706,7 @@ grammar =
     o '-     Expression',                      (-> new Op '-', $2), prec: 'UNARY_MATH'
     o '+     Expression',                      (-> new Op '+', $2), prec: 'UNARY_MATH'
 
-    o 'COFFEE_AWAIT Expression',                -> new Op $1, $2
+    o 'COFFEE_AWAIT Expression',                -> new Op $1, $2, null, false, true
 
     o '-- SimpleAssignable',                    -> new Op '--', $2
     o '++ SimpleAssignable',                    -> new Op '++', $2

@@ -3203,7 +3203,7 @@ exports.While = class While extends Base
 # Simple Arithmetic and logical operations. Performs some conversion from
 # CoffeeScript operations into their JavaScript equivalents.
 exports.Op = class Op extends Base
-  constructor: (op, first, second, flip) ->
+  constructor: (op, first, second, flip, isES6Await) ->
     super()
 
     return new In first, second if op is 'in'
@@ -3218,6 +3218,7 @@ exports.Op = class Op extends Base
     @first    = first
     @second   = second
     @flip     = !!flip
+    @isES6Await = !!isES6Await
     return this
 
   # The map of conversions from CoffeeScript to JavaScript symbols.
@@ -3238,8 +3239,7 @@ exports.Op = class Op extends Base
     @isUnary() and @operator in ['+', '-'] and
       @first instanceof Value and @first.isNumber()
 
-  isCoffeeAwait: ->
-    @operator is 'waitfor'
+  isCoffeeAwait: -> @isES6Await
 
   isYield: ->
     @operator in ['yield', 'yield*']

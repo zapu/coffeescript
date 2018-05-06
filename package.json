@@ -19,8 +19,8 @@
   "main": "./lib-iced/coffeescript/index",
   "browser": "./lib-iced/coffeescript/browser",
   "bin": {
-    "iced": "./bin/iced",
-    "icake": "./bin/icake"
+    "iced": "./bin/coffee",
+    "icake": "./bin/cake"
   },
   "files": [
     "bin",

@@ -50,7 +50,7 @@ exports.Lexer = class Lexer
     @exportSpecifierList = no    # Used to identify when in an `EXPORT {...} FROM? ...`.
     @csxDepth = 0                # Used to optimize CSX checks, how deep in CSX we are.
     @csxObjAttribute = {}        # Used to detect if CSX attributes is wrapped in {} (<div {props...} />).
-
+    @coffee_mode = opts.coffee_mode # Are we in CoffeeScript mode, where await is ES6 await?
     @chunkLine =
       opts.line or 0             # The start line for the current @chunk.
     @chunkColumn =
@@ -158,7 +158,7 @@ exports.Lexer = class Lexer
     if id is 'defer' and not colon
       tag = 'IDENTIFIER'
 
-    if id is 'waitfor'
+    if id is 'waitfor' and not @coffee_mode
       tag = 'COFFEE_AWAIT'
 
     if tag is 'IDENTIFIER' and (id in JS_KEYWORDS or id in COFFEE_KEYWORDS) and
@@ -185,6 +185,8 @@ exports.Lexer = class Lexer
           if @value() is '!'
             poppedToken = @tokens.pop()
             id = '!' + id
+      else if tag is 'AWAIT' and @coffee_mode
+        tag = 'COFFEE_AWAIT'
     else if tag is 'IDENTIFIER' and @seenFor and id is 'from' and
        isForFrom(prev)
       tag = 'FORFROM'

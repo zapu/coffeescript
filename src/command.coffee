@@ -32,6 +32,7 @@ BANNER = '''
 
 # The list of all the valid option flags that `coffee` knows how to handle.
 SWITCHES = [
+  [      '--coffee',            'interpret source code as CoffeeScript (await is ES6 await)']
   ['-b', '--bare',              'compile without a top-level function wrapper']
   ['-c', '--compile',           'compile to JavaScript and save as .js files']
   ['-e', '--eval',              'pass a string from the command line as input']
@@ -101,7 +102,7 @@ exports.run = ->
   return require('./repl').start(replCliOpts)   unless opts.arguments.length
   literals = if opts.run then opts.arguments.splice 1 else []
   process.argv = process.argv[0..1].concat literals
-  process.argv[0] = 'coffee'
+  process.argv[0] = 'coffee' # set to 'iced' or 'coffee'
 
   if opts.output
     outputBasename = path.basename opts.output
@@ -197,7 +198,7 @@ findDirectoryIndex = (source) ->
 # Compile a single source script, containing the given code, according to the
 # requested options. If evaluating the script directly, set `__filename`,
 # `__dirname` and `module.filename` to be correct relative to the script's path.
-compileScript = (file, input, base = null) ->
+compileScript = (file, input, base=null) ->
   options = compileOptions file, base
   try
     task = {file, input, options}
@@ -442,6 +443,7 @@ parseOptions = ->
   o.compile     or=  !!o.output
   o.run         = not (o.compile or o.print or o.map)
   o.print       = !!  (o.print or (o.eval or o.stdio and o.compile))
+  o.coffee      = !!o.coffee
 
 # The compile-time options to pass to the CoffeeScript compiler.
 compileOptions = (filename, base) ->
@@ -498,6 +500,7 @@ compileOptions = (filename, base) ->
     transpile: opts.transpile
     sourceMap: opts.map
     inlineMap: opts['inline-map']
+    coffee_mode: opts.coffee
 
   if filename
     if base
