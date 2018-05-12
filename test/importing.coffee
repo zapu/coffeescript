@@ -32,3 +32,8 @@ unless window? or testingBrowser?
     # Leading space intentional to check for index.coffee.md
     for module in ' .import.coffee.md import.coffee.md import.litcoffee import.extension.coffee.md'.split ' '
       ok require("./importing/#{module}").value?() is magicVal, module
+
+  atest "iced modules can be imported from coffee", (cb) ->
+    foo = require('./importing/import.iced')
+    foo (err, result) ->
+      cb result is 123, {}
