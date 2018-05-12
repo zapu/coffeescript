@@ -53,6 +53,7 @@
       this.exportSpecifierList = false; // Used to identify when in an `EXPORT {...} FROM? ...`.
       this.csxDepth = 0; // Used to optimize CSX checks, how deep in CSX we are.
       this.csxObjAttribute = {}; // Used to detect if CSX attributes is wrapped in {} (<div {props...} />).
+      this.coffee_mode = opts.coffee_mode; // Are we in CoffeeScript mode, where await is ES6 await?
       this.chunkLine = opts.line || 0; // The start line for the current @chunk.
       this.chunkColumn = opts.column || 0; // The start column of the current @chunk.
       code = this.clean(code); // The stripped, cleaned original source code.
@@ -161,7 +162,7 @@
       if (id === 'defer' && !colon) {
         tag = 'IDENTIFIER';
       }
-      if (id === 'waitfor') {
+      if (id === 'waitfor' && !this.coffee_mode) {
         tag = 'COFFEE_AWAIT';
       }
       if (tag === 'IDENTIFIER' && (indexOf.call(JS_KEYWORDS, id) >= 0 || indexOf.call(COFFEE_KEYWORDS, id) >= 0) && !(this.exportSpecifierList && indexOf.call(COFFEE_KEYWORDS, id) >= 0)) {
@@ -189,6 +190,8 @@
               id = '!' + id;
             }
           }
+        } else if (tag === 'AWAIT' && this.coffee_mode) {
+          tag = 'COFFEE_AWAIT';
         }
       } else if (tag === 'IDENTIFIER' && this.seenFor && id === 'from' && isForFrom(prev)) {
         tag = 'FORFROM';

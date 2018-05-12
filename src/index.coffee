@@ -47,7 +47,7 @@ CoffeeScript.run = (code, options = {}) ->
   mainModule.paths = require('module')._nodeModulePaths dir
 
   # Compile.
-  if not helpers.isCoffee(mainModule.filename) or require.extensions
+  if not helpers.isCoffeeOrIced(mainModule.filename) or require.extensions
     answer = CoffeeScript.compile code, options
     code = answer.js ? answer
 
@@ -104,7 +104,7 @@ if require.extensions
       Use CoffeeScript.register() or require the coffeescript/register module to require #{ext} files.
       """
 
-CoffeeScript._compileFile = (filename, sourceMap = no, inlineMap = no) ->
+CoffeeScript._compileFile = (filename, sourceMap = no, inlineMap = no, coffee_mode = no) ->
   raw = fs.readFileSync filename, 'utf8'
   # Strip the Unicode byte order mark, if this file begins with one.
   stripped = if raw.charCodeAt(0) is 0xFEFF then raw.substring 1 else raw
@@ -114,6 +114,7 @@ CoffeeScript._compileFile = (filename, sourceMap = no, inlineMap = no) ->
       filename, sourceMap, inlineMap
       sourceFiles: [filename]
       literate: helpers.isLiterate filename
+      coffee_mode
     }
   catch err
     # As the filename and code of a dynamically loaded file will be different

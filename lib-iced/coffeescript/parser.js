@@ -114,7 +114,7 @@ case 31:
 this.$ = yy.addDataToNode(yy, _$[$0], _$[$0])(new yy.Op($$[$0],
       new yy.Value(new yy.Literal(''))));
 break;
-case 32: case 278: case 279: case 282:
+case 32: case 278: case 279:
 this.$ = yy.addDataToNode(yy, _$[$0-1], _$[$0])(new yy.Op($$[$0-1],
       $$[$0]));
 break;
@@ -844,6 +844,13 @@ break;
 case 281:
 this.$ = yy.addDataToNode(yy, _$[$0-1], _$[$0])(new yy.Op('+',
       $$[$0]));
+break;
+case 282:
+this.$ = yy.addDataToNode(yy, _$[$0-1], _$[$0])(new yy.Op($$[$0-1],
+      $$[$0],
+      null,
+      false,
+      true));
 break;
 case 283:
 this.$ = yy.addDataToNode(yy, _$[$0-1], _$[$0])(new yy.Op('--',

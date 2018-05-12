@@ -250,6 +250,14 @@
     return /\.((lit)?coffee|coffee\.md)$/.test(file);
   };
 
+  exports.isIced = function(file) {
+    return /\.((lit)?iced|iced\.md)$/.test(file);
+  };
+
+  exports.isCoffeeOrIced = function(file) {
+    return exports.isCoffee(file) || exports.isIced(file);
+  };
+
   // Determine if a filename represents a Literate CoffeeScript file.
   exports.isLiterate = function(file) {
     return /\.(litcoffee|coffee\.md)$/.test(file);

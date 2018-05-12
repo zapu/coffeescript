@@ -15,6 +15,8 @@ packageJson   = require '../../package.json'
 exports.VERSION = packageJson.version
 
 exports.FILE_EXTENSIONS = FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md']
+exports.ICED_EXTENSIONS = ICED_EXTENSIONS = ['.iced', '.liticed', '.iced.md']
+ALL_EXTENSIONS = FILE_EXTENSIONS.concat(ICED_EXTENSIONS)
 
 # Expose helpers for testing.
 exports.helpers = helpers
@@ -293,7 +295,7 @@ formatSourcePosition = (frame, getSourceMapping) ->
 getSourceMap = (filename, line, column) ->
   # Skip files that we didn’t compile, like Node system files that appear in
   # the stack trace, as they never have source maps.
-  return null unless filename is '<anonymous>' or filename.slice(filename.lastIndexOf('.')) in FILE_EXTENSIONS
+  return null unless filename is '<anonymous>' or filename.slice(filename.lastIndexOf('.')) in ALL_EXTENSIONS
 
   if filename isnt '<anonymous>' and sourceMaps[filename]?
     return sourceMaps[filename][sourceMaps[filename].length - 1]
@@ -323,6 +325,7 @@ getSourceMap = (filename, line, column) ->
       filename: filename
       sourceMap: yes
       literate: helpers.isLiterate filename
+      coffee_mode: helpers.isCoffee filename
     answer.sourceMap
   else
     null

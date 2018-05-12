@@ -4,15 +4,18 @@ helpers       = require './helpers'
 path          = require 'path'
 
 # Load and run a CoffeeScript file for Node, stripping any `BOM`s.
-loadFile = (module, filename) ->
-  answer = CoffeeScript._compileFile filename, no, yes
+makeLoadFile = (coffee_mode) -> (module, filename) ->
+  answer = CoffeeScript._compileFile filename, no, yes, coffee_mode
   module._compile answer, filename
 
 # If the installed version of Node supports `require.extensions`, register
 # CoffeeScript as an extension.
 if require.extensions
   for ext in CoffeeScript.FILE_EXTENSIONS
-    require.extensions[ext] = loadFile
+    require.extensions[ext] = makeLoadFile yes
+
+  for ext in CoffeeScript.ICED_EXTENSIONS
+    require.extensions[ext] = makeLoadFile no
 
   # Patch Node's module loader to be able to handle multi-dot extensions.
   # This is a horrible thing that should not be required.
@@ -41,7 +44,7 @@ if child_process
   {fork} = child_process
   binary = require.resolve '../../bin/coffee'
   child_process.fork = (path, args, options) ->
-    if helpers.isCoffee path
+    if helpers.isCoffeeOrIced path
       unless Array.isArray args
         options = args or {}
         args = []

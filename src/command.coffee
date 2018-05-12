@@ -172,7 +172,7 @@ compilePath = (source, topLevel, base) ->
       if err.code is 'ENOENT' then return else throw err
     for file in files
       compilePath (path.join source, file), no, base
-  else if topLevel or helpers.isCoffee source
+  else if topLevel or helpers.isCoffeeOrIced source
     sources.push source
     sourceCode.push null
     delete notSources[source]
@@ -443,7 +443,6 @@ parseOptions = ->
   o.compile     or=  !!o.output
   o.run         = not (o.compile or o.print or o.map)
   o.print       = !!  (o.print or (o.eval or o.stdio and o.compile))
-  o.coffee      = !!o.coffee
 
 # The compile-time options to pass to the CoffeeScript compiler.
 compileOptions = (filename, base) ->
@@ -500,7 +499,11 @@ compileOptions = (filename, base) ->
     transpile: opts.transpile
     sourceMap: opts.map
     inlineMap: opts['inline-map']
-    coffee_mode: opts.coffee
+
+  if (o = opts['coffee'])?
+    answer.coffee_mode = !!o # force coffee or iced mode for current file
+  else
+    answer.coffee_mode = helpers.isCoffee filename
 
   if filename
     if base

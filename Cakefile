@@ -465,15 +465,16 @@ runTests = (CoffeeScript) ->
   unless global.supportsAsync # Except for async tests, if async isn’t supported.
     files = files.filter (filename) -> filename isnt 'async.coffee'
 
-  files = files.filter (filename) -> filename not in ['async.coffee']
+  #files = files.filter (filename) -> filename not in ['async.coffee']
 
   startTime = Date.now()
-  for file in files when helpers.isCoffee file
+  for file in files when helpers.isCoffeeOrIced file
     literate = helpers.isLiterate file
+    coffee_mode = helpers.isCoffee file
     currentFile = filename = path.join 'test', file
     code = fs.readFileSync filename
     try
-      CoffeeScript.run code.toString(), {filename, literate}
+      CoffeeScript.run code.toString(), {filename, literate, coffee_mode}
     catch error
       failures.push {filename, error}
 

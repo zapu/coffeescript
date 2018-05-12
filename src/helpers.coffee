@@ -167,6 +167,8 @@ exports.baseFileName = (file, stripExt = no, useWinPathSep = no) ->
 
 # Determine if a filename represents a CoffeeScript file.
 exports.isCoffee = (file) -> /\.((lit)?coffee|coffee\.md)$/.test file
+exports.isIced = (file) -> /\.((lit)?iced|iced\.md)$/.test file
+exports.isCoffeeOrIced = (file) -> exports.isCoffee(file) or exports.isIced(file)
 
 # Determine if a filename represents a Literate CoffeeScript file.
 exports.isLiterate = (file) -> /\.(litcoffee|coffee\.md)$/.test file

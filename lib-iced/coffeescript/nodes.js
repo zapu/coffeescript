@@ -4653,7 +4653,7 @@
     var CONVERSIONS, INVERSIONS;
 
     class Op extends Base {
-      constructor(op, first, second, flip) {
+      constructor(op, first, second, flip, isES6Await) {
         var firstCall;
         super();
         if (op === 'in') {
@@ -4674,6 +4674,7 @@
         this.first = first;
         this.second = second;
         this.flip = !!flip;
+        this.isES6Await = !!isES6Await;
         return this;
       }
 
@@ -4683,7 +4684,7 @@
       }
 
       isCoffeeAwait() {
-        return this.operator === 'waitfor';
+        return this.isES6Await;
       }
 
       isYield() {

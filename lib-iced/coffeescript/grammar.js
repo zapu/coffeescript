@@ -1483,8 +1483,12 @@
       o('COFFEE_AWAIT Expression',
       function() {
         return new Op($1,
-      $2);
+      $2,
+      null,
+      false,
+      true);
       }),
+      /* isES6Await */
       o('-- SimpleAssignable',
       function() {
         return new Op('--',

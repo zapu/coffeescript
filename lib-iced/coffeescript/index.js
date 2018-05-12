@@ -54,7 +54,7 @@
     dir = options.filename != null ? path.dirname(fs.realpathSync(options.filename)) : fs.realpathSync('.');
     mainModule.paths = require('module')._nodeModulePaths(dir);
     // Compile.
-    if (!helpers.isCoffee(mainModule.filename) || require.extensions) {
+    if (!helpers.isCoffeeOrIced(mainModule.filename) || require.extensions) {
       answer = CoffeeScript.compile(code, options);
       code = (ref = answer.js) != null ? ref : answer;
     }
@@ -147,7 +147,7 @@
     }
   }
 
-  CoffeeScript._compileFile = function(filename, sourceMap = false, inlineMap = false) {
+  CoffeeScript._compileFile = function(filename, sourceMap = false, inlineMap = false, coffee_mode = false) {
     var answer, err, raw, stripped;
     raw = fs.readFileSync(filename, 'utf8');
     // Strip the Unicode byte order mark, if this file begins with one.
@@ -158,7 +158,8 @@
         sourceMap,
         inlineMap,
         sourceFiles: [filename],
-        literate: helpers.isLiterate(filename)
+        literate: helpers.isLiterate(filename),
+        coffee_mode
       });
     } catch (error) {
       err = error;

@@ -910,14 +910,14 @@ wrap_error = (test_cb, predicate) ->
 
 atest "overused deferral error message", (test_cb) ->
   wrap_error test_cb, (msg) ->
-    msg.indexOf('test/iced.coffee:') != -1 and msg.indexOf('<anonymous>') != -1
+    msg.indexOf('test/iced.iced:') != -1 and msg.indexOf('<anonymous>') != -1
 
   foo = (cb) -> cb(); cb()
   await foo defer()
 
 atest "overused deferral error message 2", (test_cb) ->
   wrap_error test_cb, (msg) ->
-    msg.indexOf('test/iced.coffee:') != -1 and msg.indexOf('A.b') != -1
+    msg.indexOf('test/iced.iced:') != -1 and msg.indexOf('A.b') != -1
 
   class A
     b: () ->
@@ -928,7 +928,7 @@ atest "overused deferral error message 2", (test_cb) ->
 
 atest "overused deferral error message 3", (test_cb) ->
   wrap_error test_cb, (msg) ->
-    msg.indexOf('test/iced.coffee:') != -1 and msg.indexOf('<anonymous: anon_func>') != -1
+    msg.indexOf('test/iced.iced:') != -1 and msg.indexOf('<anonymous: anon_func>') != -1
 
   anon_func = ->
     foo = (cb) -> cb(); cb()

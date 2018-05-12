@@ -4,7 +4,7 @@
   // on Node.js/V8, or to run CoffeeScript directly in the browser. This module
   // contains the main entry functions for tokenizing, parsing, and compiling
   // source CoffeeScript into JavaScript.
-  var FILE_EXTENSIONS, Lexer, SourceMap, base64encode, checkShebangLine, compile, formatSourcePosition, getSourceMap, helpers, icedTransform, lexer, packageJson, parser, sourceMaps, sources, withPrettyErrors,
+  var ALL_EXTENSIONS, FILE_EXTENSIONS, ICED_EXTENSIONS, Lexer, SourceMap, base64encode, checkShebangLine, compile, formatSourcePosition, getSourceMap, helpers, icedTransform, lexer, packageJson, parser, sourceMaps, sources, withPrettyErrors,
     indexOf = [].indexOf;
 
   ({Lexer} = require('./lexer'));
@@ -23,6 +23,10 @@
   exports.VERSION = packageJson.version;
 
   exports.FILE_EXTENSIONS = FILE_EXTENSIONS = ['.coffee', '.litcoffee', '.coffee.md'];
+
+  exports.ICED_EXTENSIONS = ICED_EXTENSIONS = ['.iced', '.liticed', '.iced.md'];
+
+  ALL_EXTENSIONS = FILE_EXTENSIONS.concat(ICED_EXTENSIONS);
 
   // Expose helpers for testing.
   exports.helpers = helpers;
@@ -347,7 +351,7 @@
 
   getSourceMap = function(filename, line, column) {
     var answer, i, map, ref, ref1, sourceLocation;
-    if (!(filename === '<anonymous>' || (ref = filename.slice(filename.lastIndexOf('.')), indexOf.call(FILE_EXTENSIONS, ref) >= 0))) {
+    if (!(filename === '<anonymous>' || (ref = filename.slice(filename.lastIndexOf('.')), indexOf.call(ALL_EXTENSIONS, ref) >= 0))) {
       // Skip files that we didn’t compile, like Node system files that appear in
       // the stack trace, as they never have source maps.
       return null;
@@ -384,7 +388,8 @@
       answer = compile(sources[filename][sources[filename].length - 1], {
         filename: filename,
         sourceMap: true,
-        literate: helpers.isLiterate(filename)
+        literate: helpers.isLiterate(filename),
+        coffee_mode: helpers.isCoffee(filename)
       });
       return answer.sourceMap;
     } else {
