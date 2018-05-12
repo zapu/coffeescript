@@ -463,9 +463,8 @@ runTests = (CoffeeScript) ->
   # Run every test in the `test` folder, recording failures.
   files = fs.readdirSync 'test'
   unless global.supportsAsync # Except for async tests, if async isn’t supported.
-    files = files.filter (filename) -> filename isnt 'async.coffee'
-
-  #files = files.filter (filename) -> filename not in ['async.coffee']
+    files = files.filter (filename) ->
+      filename not in ['async.coffee', 'importing.iced']
 
   startTime = Date.now()
   for file in files when helpers.isCoffeeOrIced file
