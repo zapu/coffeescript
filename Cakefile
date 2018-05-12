@@ -523,9 +523,10 @@ task 'test:integrations', 'test the module integrated with other libraries and e
     builtCompiler = path.join tmpdir, 'coffeescript.js'
     CoffeeScript = require builtCompiler
     global.testingBrowser = yes
-    testResults = runTests CoffeeScript
-    fs.unlinkSync builtCompiler
-    process.exit 1 unless testResults
+    cleanup = -> fs.unlinkSync(builtCompiler)
+    runTests(CoffeeScript)
+      .then(-> cleanup())
+      .catch(-> cleanup(); process.exit(1))
 
 task 'build:inline-runtime', 'build the inline iced3 runtime', ->
   runtime_dir = path.dirname require.resolve 'iced-runtime-3'
