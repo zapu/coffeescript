@@ -660,7 +660,7 @@ IMPLICIT_CALL    = [
   'STRING', 'STRING_START', 'REGEX', 'REGEX_START', 'JS'
   'NEW', 'PARAM_START', 'CLASS', 'IF', 'TRY', 'SWITCH', 'THIS'
   'UNDEFINED', 'NULL', 'BOOL'
-  'UNARY', 'YIELD', 'AWAIT', 'UNARY_MATH', 'SUPER', 'THROW'
+  'UNARY', 'YIELD', 'AWAIT', 'COFFEE_AWAIT', 'UNARY_MATH', 'SUPER', 'THROW'
   '@', '->', '=>', '[', '(', '{', '--', '++'
 ]
 
