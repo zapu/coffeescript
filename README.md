@@ -1,62 +1,27 @@
-                                               @@@@@@@                @@@@  @@@@@
-                    {                         @@@@@@@@@@              @@@   @@@
-                 }   }   {                   @@@@     @@              @@@   @@@
-                {   {  }  }                 @@@@          @@@@@@@    @@@   @@@     @@@@@@    @@@@@@
-                 }   }{  {                 @@@@          @@@   @@  @@@@@  @@@@@@  @@@   @@  @@@@  @@
-                {  }{  }  }                @@@@         @@@@   @@   @@@    @@@   @@@   @@@ @@@   @@@
-               { }{ }{  { }                @@@@        @@@@    @@   @@@    @@@   @@@@@@@@  @@@@@@@@
-             {  { } { } { }  }             @@@@@       @@@@   @@    @@@    @@@   @@@       @@@
-              { }   { }   { }               @@@@@@@@@@ @@@@@@@@    @@@    @@@    @@@@@@@@  @@@@@@@@
-       @@@@@@   { }   { }    @@@@@@@           @@@@@               @@@    @@@      @@@@@     @@@@@
-       @@@@@@@@@@@@@@@@@@@@@@@@@@@@                               @@@    @@@
-     @@ @@@@@@@@@@@@@@@@@@@@@@@@@@             @@@@@@            @@@    @@@
-    @@   @@@@@@@@@@@@@@@@@@@@@@@@           @@@@    @@          @@@   @@@@
-    @@@   @@@@@@@@@@@@@@@@@@@@@             @@@@   @@@                       @@                  @@@@
-     @@@    @@@@@@@@@@@@@@@@@@              @@@@@          @@@@@   @@  @@   @@@     @@@@@@@     @@@@@
-       @@@   @@@@@@@@@@@@@@@@                 @@@@@      @@@  @@@ @@@@@@@@         @@@@  @@@@  @@@@@@@
-              @@@@@@@@@@@@@@                    @@@@@   @@@       @@@@     @@@@    @@@    @@@   @@@
-                                          @@@@@  @@@@  @@@@      @@@@      @@@@   @@@@   @@@@  @@@@
-                                         @@@     @@@@  @@@       @@@@     @@@@    @@@    @@@@  @@@@
-                                         @@@     @@@@  @@@@     @@@@      @@@@   @@@@   @@@@  @@@@
-                                          @@@@@@@@@     @@@@@@  @@@@       @@@@  @@@@@@@@@    @@@@
-                                                                                 @@@          @@@@
-                                                                                @@@
-                                                                                @@@
+This is a branch where iced 4 development is taking place.
 
-CoffeeScript is a little language that compiles into JavaScript.
+Iced4 took CoffeeScript 2 at commit
 
-## Installation
-
-Once you have Node.js installed:
-
-```shell
-npm install --global coffeescript
+```
+commit 694e69d872fc849a9c04dfdad0be33b946df2c4e
+Author: Geoffrey Booth <GeoffreyBooth@users.noreply.github.com>
+Date:   Mon Oct 2 22:19:32 2017 -0700
 ```
 
-Leave off the `--global` if you don’t wish to install globally.
+and started building from there.
 
-## Getting Started
+Right now supported are:
+- ES6 `await` or iced `await` depending on the file extension, or `--coffee` flag in cli.
+- ES6 await is available as `waitfor` keyword in iced code.
+- Generator-style transpiling for iced await from iced3 code branch.
 
-Execute a script:
+All tests are passing. There are, however, certain incompatibilities between 
+CoffeeScript 1 and CoffeeScript 2 which may require existing code bases to adapt
+to be able to use Iced4.
 
-```shell
-coffee /path/to/script.coffee
-```
+TODO: Document incompatibilities
+- super in constructors.
+- `arguments` magic var in `=>` functions. 
 
-Compile a script:
-
-```shell
-coffee -c /path/to/script.coffee
-```
-
-For documentation, usage, and examples, see: http://coffeescript.org/
-
-To suggest a feature or report a bug: https://github.com/jashkenas/coffeescript/issues
-
-If you’d like to chat, drop by #coffeescript on Freenode IRC.
-
-The source repository: https://github.com/jashkenas/coffeescript.git
-
-Changelog: http://coffeescript.org/#changelog
-
-Our lovely and talented contributors are listed here: https://github.com/jashkenas/coffeescript/contributors
+also:
+- no autocb
