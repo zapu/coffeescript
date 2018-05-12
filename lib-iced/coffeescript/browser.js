@@ -21,7 +21,7 @@
 
   // Running code does not provide access to this scope.
   CoffeeScript.run = function(code, options = {}) {
-    options.bare = true;
+    options.runtime = typeof window !== "undefined" && window !== null ? 'window' : 'inline';
     options.shiftLine = true;
     return Function(compile(code, options))();
   };

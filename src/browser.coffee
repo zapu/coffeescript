@@ -13,7 +13,7 @@ CoffeeScript.eval = (code, options = {}) ->
 
 # Running code does not provide access to this scope.
 CoffeeScript.run = (code, options = {}) ->
-  options.bare      = on
+  options.runtime   = if window? then 'window' else 'inline'
   options.shiftLine = on
   Function(compile code, options)()
 
